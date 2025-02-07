@@ -3,6 +3,7 @@
 ## Our Team
 John
 , Mayokun
+Evan
 
 ## How to run the streamlit app
 
