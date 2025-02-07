@@ -2,7 +2,6 @@
 
 ## Our Team
 
-TODO: Replace with your team members
 John
 
 ## How to run the streamlit app
