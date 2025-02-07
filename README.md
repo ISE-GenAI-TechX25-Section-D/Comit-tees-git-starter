@@ -1,9 +1,8 @@
 # TODO: Replace with your team name
 
 ## Our Team
-
-TODO: Replace with your team members
 John
+Mayokun
 
 ## How to run the streamlit app
 
