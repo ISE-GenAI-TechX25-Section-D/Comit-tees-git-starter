@@ -2,7 +2,7 @@
 
 ## Our Team
 John
-Mayokun
+, Mayokun
 
 ## How to run the streamlit app
 
