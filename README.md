@@ -1,4 +1,4 @@
-# TODO: Replace with your team name
+The Commit-tees
 
 ## Our Team
 John
