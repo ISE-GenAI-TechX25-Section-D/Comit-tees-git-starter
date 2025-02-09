@@ -4,6 +4,7 @@ The Commit-tees
 John
 , Mayokun
 , Evan
+, Diego
 
 ## How to run the streamlit app
 
