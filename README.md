@@ -4,7 +4,7 @@ The Commit-tees
 John
 , Mayokun
 , Evan
-, Diego
+, Diego A. Perez Gandarillas
 
 ## How to run the streamlit app
 
