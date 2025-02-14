@@ -4,17 +4,16 @@ name: Cloud Run Continuous Deployment
 
 on:
   push:
-    # TODO: change 'none' to 'main' to enable the workflow to run
-    branches: 'none'
+    branches: 'main'
   release:
     types: [published]
 
 env:
-  PROJECT_ID: '' # TODO: update to your Google Cloud project ID
-  SERVICE_NAME: '' # TODO: update to your service name (name of your team's webapp!)
+  PROJECT_ID: 'diegoperez16techx25'
+  SERVICE_NAME: 'ise-genai-d5'
   SERVICE_REGION: 'us-central1'
-  SERVICE_ACCOUNT: '' # TODO: update to your Cloud service account
-  WORKLOAD_IDENTITY_PROVIDER: '' #TODO: update to your workload identity provider
+  SERVICE_ACCOUNT: '1085648047398-compute@developer.gserviceaccount.com'
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/1085648047398/locations/global/workloadIdentityPools/github/providers/project-repo'
 
 jobs:
   py-checks:
