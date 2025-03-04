@@ -7,6 +7,7 @@
 # function other than the example.
 #############################################################################
 
+import streamlit as sl
 from internals import create_component
 from data_fetcher import get_user_workouts
 
@@ -51,7 +52,6 @@ def display_recent_workouts(workouts_list):
         Outputs a table to website
     """
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    import streamlit as sl
     import pandas as pd
     if 'workouts_list' not in sl.session_state:
         sl.session_state.workouts_list = workouts_list
@@ -90,6 +90,3 @@ def display_recent_workouts(workouts_list):
 def display_genai_advice(timestamp, content, image):
     """Write a good docstring here."""
     pass
-
-if __name__ == "__main__":
-    display_recent_workouts(get_user_workouts('user1'))
