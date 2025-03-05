@@ -91,5 +91,17 @@ def display_recent_workouts(workouts_list):
 
 
 def display_genai_advice(timestamp, content, image):
-    """Write a good docstring here."""
-    pass
+    """
+    Description: Displays advice developed by the AI model along with a related image.
+    Input: A timestamp, content, and image.
+    Output: Returns Nothing
+            Outputs a page containing the advice and image.
+    """
+    sl.title("AI Fitness Coach")
+    sl.subheader("Personalized advice based on your activities")
+    sl.markdown(content)
+    sl.image(image)
+    sl.markdown(f"Last updated: {timestamp}")
+
+    
+   
