@@ -10,6 +10,8 @@
 import streamlit as sl
 from internals import create_component
 from data_fetcher import get_user_workouts
+from data_fetcher import get_user_posts
+from PIL import Image
 
 #add your tab to the list when you're ready, https://docs.streamlit.io/develop/api-reference/layout/st.tabs
 recent_workouts_tab = sl.tabs(['Recent Workouts'])
@@ -34,7 +36,37 @@ def display_my_custom_component(value):
 
 
 def display_post(username, user_image, timestamp, content, post_image):
-    """Write a good docstring here."""
+    """
+    Description:
+        Displays post content and username/pfp on the page
+    Input:
+        Username, pfp image, date/time, image content, text posted
+    Output:
+        None, instead, shows the user's posts as well as info on the page
+    """
+    
+    user = sl.text_input('Search Posts')
+    user = username
+    pic_col, post_col = sl.columns([1, 1])
+    
+    with post_col: 
+        pfp_col, text_col = sl.columns([1, 2])
+        with pfp_col:
+            sl.image(user_image, width = 100)
+            
+        with text_col:
+            sl.write(user)
+        sl.write(timestamp)
+        sl.write("---") 
+        sl.write(content)
+                
+    with pic_col:
+        sl.image(post_image, width = 300)
+
+#if __name__ == '__main__':
+#display_post('Remi', 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Puma_shoes.jpg', '2024-01-01 00:00:00', 'Had a great workout today!', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSz0kSuHwimKiIaNdUXwlaLMlkmnTXVC36Qkg&s')
+    
+
     pass
 
 
@@ -93,3 +125,8 @@ def display_recent_workouts(workouts_list):
 def display_genai_advice(timestamp, content, image):
     """Write a good docstring here."""
     pass
+
+
+if __name__ == '__main__':
+    
+    display_post('Remi', 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Puma_shoes.jpg', '2024-01-01 00:00:00', 'Had a great workout today!', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSz0kSuHwimKiIaNdUXwlaLMlkmnTXVC36Qkg&s')
