@@ -123,10 +123,14 @@ def display_recent_workouts(workouts_list):
 
 
 def display_genai_advice(timestamp, content, image):
-    """Write a good docstring here."""
-    pass
-
-
-if __name__ == '__main__':
-    
-    display_post('Remi', 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Puma_shoes.jpg', '2024-01-01 00:00:00', 'Had a great workout today!', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSz0kSuHwimKiIaNdUXwlaLMlkmnTXVC36Qkg&s')
+    """
+    Description: Displays advice developed by the AI model along with a related image.
+    Input: A timestamp, content, and image.
+    Output: Returns Nothing
+            Outputs a page containing the advice and image.
+    """
+    sl.title("AI Fitness Coach")
+    sl.subheader("Personalized advice based on your activities")
+    sl.markdown(content)
+    sl.image(image)
+    sl.markdown(f"Last updated: {timestamp}")
