@@ -176,3 +176,26 @@ to the service account, which is the `PROJECT_NUMBER-compute@developer.gservicea
 `.github/workflows/cloud-run.yml`, commit and push your changes, 
 and click on "Actions" in your team's repository on GitHub to see
 the workflows running! If the actions don't succeed, double check all of your previous commands, specifically all of the bash variables. 
+
+## Running Test Code
+
+### Streamlit required version
+
+To be able to use AppTest to test UI components from streamlit, streamlit must be at least version 1.43.0.
+Link to Streamlit explanation: https://docs.streamlit.io/develop/api-reference/app-testing/st.testing.v1.apptest
+
+### Running test cases
+
+You can run test cases either with unittest or pytest. Pytest is recommended.
+#### Commands
+
+```shell
+# Running whole test file
+python -m pytest modules_test.py
+```
+
+```shell
+# Example running a specific class in a test file
+python -m pytest modules_test.py::TestDisplayActivitySummary
+```
+
