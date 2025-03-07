@@ -10,7 +10,7 @@
 import streamlit as sl
 from internals import create_component
 from data_fetcher import get_user_workouts, get_user_posts
-from PIL import Image, get_user_profile
+from PIL import Image
 import pandas as pd
 
 
@@ -73,7 +73,27 @@ def display_post(username, user_image, timestamp, content, post_image):
 
 def display_activity_summary(workouts_list):
     
-    """Write a good docstring here."""
+    """
+    Description: 
+        Displays an activity summary for the user's workouts.
+        This function presents an overview of the user's fitness activity by:
+            - Allowing the user to select a workout type (currently limited to "Running").
+            - Displaying total distance, total steps, and total calories burned.
+            - Showing a detailed table of past workouts, including timestamps, distance, steps, and calories burned.
+            - Visualizing weekly calorie progress with a progress bar.
+    Input:
+        workouts_list (list of dict): A list of workout dictionaries, where each workout contains:
+            - 'workout_id' (str): A unique identifier for the workout.
+            - 'start_timestamp' (str): The start time of the workout.
+            - 'end_timestamp' (str): The end time of the workout.
+            - 'start_lat_lng' (tuple): Starting latitude and longitude.
+            - 'end_lat_lng' (tuple): Ending latitude and longitude.
+            - 'distance' (float): Distance covered in miles.
+            - 'steps' (int): Number of steps taken.
+            - 'calories_burned' (int): Calories burned during the workout.
+    Output:
+        None
+    """
 
     sl.title("🏋️ Activity Fitness Summary")
     
