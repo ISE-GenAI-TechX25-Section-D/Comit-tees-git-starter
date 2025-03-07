@@ -143,7 +143,9 @@ def display_activity_summary(workouts_list):
     # Weekly Calorie Progress
     sl.subheader("Weekly Calorie Progress")
     week_goal = 450  # Default weekly goal
+    sl.session_state.weekly_calorie_goal = week_goal
     progress_bar_amount = min(((total_calories / week_goal) * 100), 1.0)
+    sl.session_state.weekly_calorie_progress_amount = progress_bar_amount
     sl.progress(progress_bar_amount / 100)
     sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")
 
