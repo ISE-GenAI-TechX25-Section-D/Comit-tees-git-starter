@@ -9,13 +9,12 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts
-from data_fetcher import get_user_posts
+from data_fetcher import get_user_workouts, get_user_posts
 from PIL import Image
 
 #add your tab to the list when you're ready, https://docs.streamlit.io/develop/api-reference/layout/st.tabs
-recent_workouts_tab = sl.tabs(['Recent Workouts'])
-
+recent_workouts_tab, post_tab, gen_ai_advice_tab = sl.tabs(['Recent Workouts', 'Posts', 'Gen AI Advice'])
+ 
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
     """Displays a 'my custom component' which showcases an example of how custom
@@ -88,12 +87,13 @@ def display_recent_workouts(workouts_list):
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
     import pandas as pd
     with recent_workouts_tab:
-        if 'workouts_list' not in sl.session_state:
-            sl.session_state.workouts_list = workouts_list
         sl.title('Recent Workouts') 
+        if len(workouts_list) == 0:
+            sl.subheader("No Workout Data To Display")
+            return
+        elif 'workouts_list' not in sl.session_state:
+            sl.session_state.workouts_list = workouts_list
         mod_workouts_list = []
-        #start_lat_long_list = []
-        #end_lat_long_list =[]
         for i in range(len(sl.session_state.workouts_list)):
             mod_workouts_list.append({
                 'workout_id': workouts_list[i]['workout_id'],
@@ -103,23 +103,10 @@ def display_recent_workouts(workouts_list):
                 'steps': workouts_list[i]['steps'],
                 'calories_burned': workouts_list[i]['calories_burned']
             })
-            # start_lat_long_list.append({
-            #     'start_lat': workouts_list[i]['start_lat_lng'][0],
-            #     'start_long': workouts_list[i]['start_lat_lng'][1]
-            # })
-            # end_lat_long_list.append({
-            #     'end_lat': workouts_list[i]['end_lat_lng'][0],
-            #     'end_long': workouts_list[i]['end_lat_lng'][1]
-            # })
             
         df = pd.DataFrame(mod_workouts_list)
         df.columns = ['Workout Name', 'Start Date and Time', 'End Date and Time', 'Total Distance', 'Steps', 'Calories Burned']
         sl.table(df)
-        #map is kinda wonky
-        # start_pos = pd.DataFrame(start_lat_long_list)
-        # end_pos = pd.DataFrame(end_lat_long_list)
-        # sl.map(start_pos,latitude='start_lat', longitude='start_long')
-        # sl.map(end_pos,latitude='end_lat', longitude='end_long')
 
 
 def display_genai_advice(timestamp, content, image):
