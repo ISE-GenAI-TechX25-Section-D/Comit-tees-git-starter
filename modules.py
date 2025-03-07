@@ -9,13 +9,14 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts
-from data_fetcher import get_user_posts
+from data_fetcher import get_user_workouts, get_user_posts
 from PIL import Image
+import pandas as pd
+
 
 #add your tab to the list when you're ready, https://docs.streamlit.io/develop/api-reference/layout/st.tabs
-recent_workouts_tab = sl.tabs(['Recent Workouts'])
-
+recent_workouts_tab, post_tab, gen_ai_advice_tab = sl.tabs(['Recent Workouts', 'Posts', 'Gen AI Advice'])
+ 
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
     """Displays a 'my custom component' which showcases an example of how custom
@@ -71,8 +72,82 @@ def display_post(username, user_image, timestamp, content, post_image):
 
 
 def display_activity_summary(workouts_list):
-    """Write a good docstring here."""
-    pass
+    import streamlit as sl
+    import pandas as pd
+    
+    """
+    Description: 
+        Displays an activity summary for the user's workouts.
+        This function presents an overview of the user's fitness activity by:
+            - Allowing the user to select a workout type (currently limited to "Running").
+            - Displaying total distance, total steps, and total calories burned.
+            - Showing a detailed table of past workouts, including timestamps, distance, steps, and calories burned.
+            - Visualizing weekly calorie progress with a progress bar.
+    Input:
+        workouts_list (list of dict): A list of workout dictionaries, where each workout contains:
+            - 'workout_id' (str): A unique identifier for the workout.
+            - 'start_timestamp' (str): The start time of the workout.
+            - 'end_timestamp' (str): The end time of the workout.
+            - 'start_lat_lng' (tuple): Starting latitude and longitude.
+            - 'end_lat_lng' (tuple): Ending latitude and longitude.
+            - 'distance' (float): Distance covered in miles.
+            - 'steps' (int): Number of steps taken.
+            - 'calories_burned' (int): Calories burned during the workout.
+    Output:
+        None
+    """
+
+    sl.title("🏋️ Activity Fitness Summary")
+    
+    # workout_options = ["Running", "Full Body", "Chest", "Cardio", "Back"] # Using list when workout types are available
+
+    workout_options = ["Running"]
+
+    if 'workouts_list' not in sl.session_state:
+            sl.session_state.workouts_list = workouts_list
+    
+    if "selected_workout" not in sl.session_state:
+        sl.session_state.selected_workout = workout_options[0]
+    
+    workout_type = sl.selectbox("Workout (Beta - Only Running has data):", workout_options, key="workout_selector")
+    
+    # Refresh workouts only when selection changes
+    if workout_type != sl.session_state.selected_workout:
+        sl.session_state.selected_workout = workout_type
+    
+    workouts = sl.session_state.workouts_list
+
+    # Summary metrics
+  
+    total_distance = 0
+    total_steps = 0
+    total_calories = 0
+
+    for workout in workouts:
+        total_distance += workout['distance']
+        total_steps += workout['steps']
+        total_calories += workout['calories_burned']
+
+    
+    # Displaying summary statistics
+    col1, col2, col3 = sl.columns(3)
+    col1.metric("Total Distance", f"{total_distance} mi")
+    col2.metric("Total Steps", f"{total_steps}")
+    col3.metric("Total Calories", f"{total_calories} cals")
+    
+    # Workout Details Table
+    sl.subheader("Workout Details")
+    df = pd.DataFrame(workouts)
+    sl.dataframe(df[["start_timestamp", "end_timestamp", "distance", "steps", "calories_burned"]])
+    
+    # Weekly Calorie Progress
+    sl.subheader("Weekly Calorie Progress")
+    week_goal = 450  # Default weekly goal
+    sl.session_state.weekly_calorie_goal = week_goal
+    progress_bar_amount = min(((total_calories / week_goal) * 100), 1.0)
+    sl.session_state.weekly_calorie_progress_amount = progress_bar_amount
+    sl.progress(progress_bar_amount / 100)
+    sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")
 
 
 def display_recent_workouts(workouts_list):
@@ -88,12 +163,13 @@ def display_recent_workouts(workouts_list):
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
     import pandas as pd
     with recent_workouts_tab:
-        if 'workouts_list' not in sl.session_state:
-            sl.session_state.workouts_list = workouts_list
         sl.title('Recent Workouts') 
+        if len(workouts_list) == 0:
+            sl.subheader("No Workout Data To Display")
+            return
+        elif 'workouts_list' not in sl.session_state:
+            sl.session_state.workouts_list = workouts_list
         mod_workouts_list = []
-        #start_lat_long_list = []
-        #end_lat_long_list =[]
         for i in range(len(sl.session_state.workouts_list)):
             mod_workouts_list.append({
                 'workout_id': workouts_list[i]['workout_id'],
@@ -103,23 +179,10 @@ def display_recent_workouts(workouts_list):
                 'steps': workouts_list[i]['steps'],
                 'calories_burned': workouts_list[i]['calories_burned']
             })
-            # start_lat_long_list.append({
-            #     'start_lat': workouts_list[i]['start_lat_lng'][0],
-            #     'start_long': workouts_list[i]['start_lat_lng'][1]
-            # })
-            # end_lat_long_list.append({
-            #     'end_lat': workouts_list[i]['end_lat_lng'][0],
-            #     'end_long': workouts_list[i]['end_lat_lng'][1]
-            # })
             
         df = pd.DataFrame(mod_workouts_list)
         df.columns = ['Workout Name', 'Start Date and Time', 'End Date and Time', 'Total Distance', 'Steps', 'Calories Burned']
         sl.table(df)
-        #map is kinda wonky
-        # start_pos = pd.DataFrame(start_lat_long_list)
-        # end_pos = pd.DataFrame(end_lat_long_list)
-        # sl.map(start_pos,latitude='start_lat', longitude='start_long')
-        # sl.map(end_pos,latitude='end_lat', longitude='end_long')
 
 
 def display_genai_advice(timestamp, content, image):
