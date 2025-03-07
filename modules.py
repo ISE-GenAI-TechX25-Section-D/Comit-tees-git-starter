@@ -72,6 +72,8 @@ def display_post(username, user_image, timestamp, content, post_image):
 
 
 def display_activity_summary(workouts_list):
+    import streamlit as sl
+    import pandas as pd
     
     """
     Description: 
@@ -124,7 +126,7 @@ def display_activity_summary(workouts_list):
     for workout in workouts:
         total_distance += workout['distance']
         total_steps += workout['steps']
-        total_calories = workout['calories_burned']
+        total_calories += workout['calories_burned']
 
     
     # Displaying summary statistics
@@ -141,7 +143,9 @@ def display_activity_summary(workouts_list):
     # Weekly Calorie Progress
     sl.subheader("Weekly Calorie Progress")
     week_goal = 450  # Default weekly goal
-    progress_bar_amount = (total_calories / week_goal) * 100
+    sl.session_state.weekly_calorie_goal = week_goal
+    progress_bar_amount = min(((total_calories / week_goal) * 100), 1.0)
+    sl.session_state.weekly_calorie_progress_amount = progress_bar_amount
     sl.progress(progress_bar_amount / 100)
     sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")
 
