@@ -11,6 +11,8 @@ import streamlit as sl
 from internals import create_component
 from data_fetcher import get_user_workouts, get_user_posts
 from PIL import Image
+import pandas as pd
+
 
 #add your tab to the list when you're ready, https://docs.streamlit.io/develop/api-reference/layout/st.tabs
 recent_workouts_tab, post_tab, gen_ai_advice_tab = sl.tabs(['Recent Workouts', 'Posts', 'Gen AI Advice'])
@@ -70,8 +72,78 @@ def display_post(username, user_image, timestamp, content, post_image):
 
 
 def display_activity_summary(workouts_list):
-    """Write a good docstring here."""
-    pass
+    
+    """
+    Description: 
+        Displays an activity summary for the user's workouts.
+        This function presents an overview of the user's fitness activity by:
+            - Allowing the user to select a workout type (currently limited to "Running").
+            - Displaying total distance, total steps, and total calories burned.
+            - Showing a detailed table of past workouts, including timestamps, distance, steps, and calories burned.
+            - Visualizing weekly calorie progress with a progress bar.
+    Input:
+        workouts_list (list of dict): A list of workout dictionaries, where each workout contains:
+            - 'workout_id' (str): A unique identifier for the workout.
+            - 'start_timestamp' (str): The start time of the workout.
+            - 'end_timestamp' (str): The end time of the workout.
+            - 'start_lat_lng' (tuple): Starting latitude and longitude.
+            - 'end_lat_lng' (tuple): Ending latitude and longitude.
+            - 'distance' (float): Distance covered in miles.
+            - 'steps' (int): Number of steps taken.
+            - 'calories_burned' (int): Calories burned during the workout.
+    Output:
+        None
+    """
+
+    sl.title("🏋️ Activity Fitness Summary")
+    
+    # workout_options = ["Running", "Full Body", "Chest", "Cardio", "Back"] # Using list when workout types are available
+
+    workout_options = ["Running"]
+
+    if 'workouts_list' not in sl.session_state:
+            sl.session_state.workouts_list = workouts_list
+    
+    if "selected_workout" not in sl.session_state:
+        sl.session_state.selected_workout = workout_options[0]
+    
+    workout_type = sl.selectbox("Workout (Beta - Only Running has data):", workout_options, key="workout_selector")
+    
+    # Refresh workouts only when selection changes
+    if workout_type != sl.session_state.selected_workout:
+        sl.session_state.selected_workout = workout_type
+    
+    workouts = sl.session_state.workouts_list
+
+    # Summary metrics
+  
+    total_distance = 0
+    total_steps = 0
+    total_calories = 0
+
+    for workout in workouts:
+        total_distance += workout['distance']
+        total_steps += workout['steps']
+        total_calories = workout['calories_burned']
+
+    
+    # Displaying summary statistics
+    col1, col2, col3 = sl.columns(3)
+    col1.metric("Total Distance", f"{total_distance} mi")
+    col2.metric("Total Steps", f"{total_steps}")
+    col3.metric("Total Calories", f"{total_calories} cals")
+    
+    # Workout Details Table
+    sl.subheader("Workout Details")
+    df = pd.DataFrame(workouts)
+    sl.dataframe(df[["start_timestamp", "end_timestamp", "distance", "steps", "calories_burned"]])
+    
+    # Weekly Calorie Progress
+    sl.subheader("Weekly Calorie Progress")
+    week_goal = 450  # Default weekly goal
+    progress_bar_amount = (total_calories / week_goal) * 100
+    sl.progress(progress_bar_amount / 100)
+    sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")
 
 
 def display_recent_workouts(workouts_list):
