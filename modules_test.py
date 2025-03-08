@@ -9,18 +9,36 @@
 import unittest
 import streamlit as sl
 from streamlit.testing.v1 import AppTest
-from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts
+from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts, users
 
 
 # Write your tests below
 
 class TestDisplayPost(unittest.TestCase):
     """Tests the display_post function."""
-
     def test_foo(self):
         """Tests foo."""
         pass
 
+'''
+    def test_valid_user(self):
+        with AppTest.from_function(display_posts, 'user1') as at:
+            self.assertTrue(at.subheader.call_count > 0)
+            self.assertTrue(at.write.call_count > 0)
+
+    def test_invalid_user(self):
+        with AppTest.from_function(display_posts, 'invalid_user') as at:
+            at.error.assert_called_once_with("User 'invalid_user' not found.")
+
+    def test_invalid_friend(self):
+        original_friends = users['user1']['friends']
+        users['user1']['friends'] = ['invalid_friend']
+
+        with AppTest.from_function(display_posts, 'user1') as at:
+            at.warning.assert_called_once_with("Friend ID 'invalid_friend' not found.")
+
+        users['user1']['friends'] = original_friends
+'''
 
 class TestDisplayActivitySummary(unittest.TestCase):
     """Tests the display_activity_summary function using Streamlit's AppTest."""
