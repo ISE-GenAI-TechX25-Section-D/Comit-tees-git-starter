@@ -202,6 +202,7 @@ def display_recent_workouts(workouts_list):
 
 
 def display_genai_advice(timestamp, content, image):
+    import streamlit as sl
     """
     Description: Displays advice developed by the AI model along with a related image.
     Input: A timestamp, content, and image.
