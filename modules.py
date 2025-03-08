@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts
+from data_fetcher import get_user_workouts, get_user_posts, users
 from PIL import Image
 import pandas as pd
 
@@ -36,39 +36,55 @@ def display_my_custom_component(value):
     create_component(data, html_file_name)
 
 
-def display_post(username, user_image, timestamp, content, post_image):
+#used gemini for assistance
+def display_post(user_id):
     """
     Description:
-        Displays post content and username/pfp on the page
+        Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post
     Input:
-        Username, pfp image, date/time, image content, text posted
+        User(id): whoever is logged in
     Output:
-        None, instead, shows the user's posts as well as info on the page
+        None: instead, shows the user's friends' posts as well as info on the page
     """
-    
-    user = sl.text_input('Search Posts')
-    user = username
-    pic_col, post_col = sl.columns([1, 1])
-    
-    with post_col: 
-        pfp_col, text_col = sl.columns([1, 2])
-        with pfp_col:
-            sl.image(user_image, width = 100)
+
+    if user_id not in users:
+        sl.error("User not found.")
+        return
+
+    user = users[user_id]
+    friends = user['friends']
+
+    sl.header("Friends' Posts")
+
+    for friend_id in friends:
+        if friend_id in users:
             
-        with text_col:
-            sl.write(user)
-        sl.write(timestamp)
-        sl.write("---") 
-        sl.write(content)
-                
-    with pic_col:
-        sl.image(post_image, width = 300)
+            friend = users[friend_id]
+            posts = get_user_posts(friend_id)
 
-#if __name__ == '__main__':
-#display_post('Remi', 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Puma_shoes.jpg', '2024-01-01 00:00:00', 'Had a great workout today!', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSz0kSuHwimKiIaNdUXwlaLMlkmnTXVC36Qkg&s')
-    
+            sl.image(friend['profile_image'], width=100)
+            sl.subheader(f"{friend['full_name']} (@{friend['username']})")
+            for post in posts:
+                sl.write(f"**{post['content']}**")
+                sl.write(f"Posted on: {post['timestamp']}")
+                if post['image']:
+                    sl.image(post['image'], width=200)
+                sl.markdown("---")  # Separator between posts
+        else:
+            sl.warning(f"Friend ID '{friend_id}' not found.")
 
-    pass
+'''
+def main():
+    sl.title("Social Media Feed")
+
+    user_id = sl.selectbox("Select a User", list(users.keys()))
+
+    if sl.button("Show Feed"):
+        display_post(user_id)
+
+if __name__ == "__main__":
+    main()
+'''
 
 
 def display_activity_summary(workouts_list):
