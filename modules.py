@@ -15,7 +15,7 @@ import pandas as pd
 
 
 #add your tab to the list when you're ready, https://docs.streamlit.io/develop/api-reference/layout/st.tabs
-recent_workouts_tab, post_tab, gen_ai_advice_tab = sl.tabs(['Recent Workouts', 'Posts', 'Gen AI Advice'])
+#recent_workouts_tab, post_tab, gen_ai_advice_tab = sl.tabs(['Recent Workouts', 'Posts', 'Gen AI Advice'])
  
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
@@ -75,18 +75,18 @@ def display_post(user_id):
         else:
             sl.warning(f"Friend ID '{friend_id}' not found.")
 
-'''
-def main():
-    sl.title("Social Media Feed")
+# """
+# def main():
+#     sl.title("Social Media Feed")
 
-    user_id = sl.selectbox("Select a User", list(users.keys()))
+#     user_id = sl.selectbox("Select a User", list(users.keys()))
 
-    if sl.button("Show Feed"):
-        display_post(user_id)
+#     if sl.button("Show Feed"):
+#         display_post(user_id)
 
-if __name__ == "__main__":
-    main()
-'''
+# if __name__ == "__main__":
+#     main()
+# """
 
 
 def display_activity_summary(workouts_list):
@@ -169,6 +169,8 @@ def display_activity_summary(workouts_list):
 
 
 def display_recent_workouts(workouts_list):
+    import streamlit as sl
+    import pandas as pd
     """
     Description:
         Displays information about the recent workouts from workouts_list by showing a table of information (and potentially a map, but doesnt look right)
@@ -179,28 +181,27 @@ def display_recent_workouts(workouts_list):
         Outputs a table to website
     """
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    import pandas as pd
-    with recent_workouts_tab:
-        sl.title('Recent Workouts') 
-        if len(workouts_list) == 0:
-            sl.subheader("No Workout Data To Display")
-            return
-        elif 'workouts_list' not in sl.session_state:
-            sl.session_state.workouts_list = workouts_list
-        mod_workouts_list = []
-        for i in range(len(sl.session_state.workouts_list)):
-            mod_workouts_list.append({
-                'workout_id': workouts_list[i]['workout_id'],
-                'start_timestamp': workouts_list[i]['start_timestamp'],
-                'end_timestamp': workouts_list[i]['end_timestamp'],
-                'distance': workouts_list[i]['distance'],
-                'steps': workouts_list[i]['steps'],
-                'calories_burned': workouts_list[i]['calories_burned']
-            })
-            
-        df = pd.DataFrame(mod_workouts_list)
-        df.columns = ['Workout Name', 'Start Date and Time', 'End Date and Time', 'Total Distance', 'Steps', 'Calories Burned']
-        sl.table(df)
+    #with recent_workouts_tab:
+    sl.title('Recent Workouts') 
+    if len(workouts_list) == 0:
+        sl.subheader("No Workout Data To Display")
+        return
+    elif 'workouts_list' not in sl.session_state:
+        sl.session_state.workouts_list = workouts_list
+    mod_workouts_list = []
+    for i in range(len(sl.session_state.workouts_list)):
+        mod_workouts_list.append({
+            'workout_id': workouts_list[i]['workout_id'],
+            'start_timestamp': workouts_list[i]['start_timestamp'],
+            'end_timestamp': workouts_list[i]['end_timestamp'],
+            'distance': workouts_list[i]['distance'],
+            'steps': workouts_list[i]['steps'],
+            'calories_burned': workouts_list[i]['calories_burned']
+        })
+        
+    df = pd.DataFrame(mod_workouts_list)
+    df.columns = ['Workout Name', 'Start Date and Time', 'End Date and Time', 'Total Distance', 'Steps', 'Calories Burned']
+    sl.table(df)
 
 
 def display_genai_advice(timestamp, content, image):

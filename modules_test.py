@@ -12,6 +12,7 @@ from streamlit.testing.v1 import AppTest
 from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts, users
 from data_fetcher import get_user_posts
 from unittest.mock import patch, Mock
+import pandas as pd
 
 
 # Write your tests below
@@ -206,9 +207,112 @@ class TestDisplayGenAiAdvice(unittest.TestCase):
 class TestDisplayRecentWorkouts(unittest.TestCase):
     """Tests the display_recent_workouts function."""
 
-    def test_foo(self):
-        """Tests foo."""
-        pass
+    def setUp(self):
+        """Set up the AppTest environment using from_function()"""
+        self.test_workouts = [
+            {
+                'workout_id': 'workout0',
+                "start_timestamp": "2024-03-07 08:00:00",
+                "end_timestamp": "2024-03-07 08:30:00",
+                'start_lat_lng': (),
+                'end_lat_lng': (),
+                "distance": 3.2,
+                "steps": 4500,
+                "calories_burned": 320
+            },
+            {
+                'workout_id': 'workout1',
+                "start_timestamp": "2024-03-06 07:30:00",
+                "end_timestamp": "2024-03-06 08:00:00",
+                'start_lat_lng': (),
+                'end_lat_lng': (),
+                "distance": 2.5,
+                "steps": 3800,
+                "calories_burned": 270
+            }
+        ]
+        
+        self.app = AppTest.from_function(display_recent_workouts, kwargs={"workouts_list": self.test_workouts})
+        self.app.run()
+
+        self.subheaders = [subh for subh in self.app.subheader]
+        self.dataframe = self.app.table[0].value #gets the pandas dataframe.
+    
+    def test_drw_contains_title(self):
+        "Checks to make sure the title is present"
+        titles = [title.value for title in self.app.title]
+        self.assertIn("Recent Workouts", titles, "Title 'Recent Workouts' not found!")
+
+    def test_drw_table_contains_correct_columns(self):
+        actual_columns = self.dataframe.columns.tolist() #converts the columns to a list.
+        expected_columns = ['Workout Name', 'Start Date and Time', 'End Date and Time', 'Total Distance', 'Steps', 'Calories Burned']
+        self.assertEqual(actual_columns, expected_columns, "Table columns do not match expected columns!")
+
+    def test_drw_table_contains_values(self):
+        actual_workout_names = self.dataframe["Workout Name"].tolist()
+        expected_workout_names = ["workout0", "workout1"]
+        self.assertEqual(actual_workout_names, expected_workout_names, "Workout names are not equal!")
+
+        actual_start_date_time = self.dataframe["Start Date and Time"].tolist()
+        expected_start_date_time = ["2024-03-07 08:00:00", "2024-03-06 07:30:00"]
+        self.assertEqual(actual_start_date_time, expected_start_date_time, "Start Date and Time are not equal!")
+
+        actual_end_date_time = self.dataframe["End Date and Time"].tolist()
+        expected_end_date_time = ["2024-03-07 08:30:00", "2024-03-06 08:00:00"]
+        self.assertEqual(actual_end_date_time, expected_end_date_time, "End Date and Time are not equal!")
+
+        actual_distance = self.dataframe["Total Distance"].tolist()
+        expected_distance = [3.2, 2.5]
+        self.assertEqual(actual_distance, expected_distance, "Total Distance are not equal!")
+
+        actual_steps = self.dataframe["Steps"].tolist()
+        expected_steps = [4500, 3800]
+        self.assertEqual(actual_steps, expected_steps, "Steps are not equal!")
+
+        actual_calories = self.dataframe["Calories Burned"].tolist()
+        expected_calories = [320, 270]
+        self.assertEqual(actual_calories, expected_calories, "Calories Burned are not equal!")
+
+    def test_drw_data_types(self):
+        """Tests that data types in the table are correct."""
+        if self.app.table:
+            table_element = self.app.table[0]
+            df = table_element.value
+            self.assertTrue(pd.api.types.is_numeric_dtype(df['Total Distance']), "Total Distance should be numeric.")
+            self.assertTrue(pd.api.types.is_numeric_dtype(df['Steps']), "Steps should be numeric.")
+            self.assertTrue(pd.api.types.is_numeric_dtype(df['Calories Burned']), "Calories Burned should be numeric.")
+
+    def test_drw_incorrect_data_not_equal(self):
+        actual_workout_names = self.dataframe["Workout Name"].tolist()
+        incorrect_workout_names = ["workout3", "workout4"]
+        self.assertNotEqual(actual_workout_names, incorrect_workout_names, "Workout names are equal!")
+
+        actual_start_date_time = self.dataframe["Start Date and Time"].tolist()
+        incorrect_start_date_time = ["2025-03-08 08:00:00", "2024-03-09 07:30:00"]
+        self.assertNotEqual(actual_start_date_time, incorrect_start_date_time, "Start Date and Time are equal!")
+
+        actual_end_date_time = self.dataframe["End Date and Time"].tolist()
+        incorrect_end_date_time = ["2024-03-08 08:30:00", "2024-03-09 08:00:00"]
+        self.assertNotEqual(actual_end_date_time, incorrect_end_date_time, "End Date and Time are equal!")
+
+        actual_distance = self.dataframe["Total Distance"].tolist()
+        incorrect_distance = [2.4, 5.7]
+        self.assertNotEqual(actual_distance, incorrect_distance, "Total Distance are equal!")
+
+        actual_steps = self.dataframe["Steps"].tolist()
+        incorrect_steps = [6000, 1500]
+        self.assertNotEqual(actual_steps, incorrect_steps, "Steps are equal!")
+
+        actual_calories = self.dataframe["Calories Burned"].tolist()
+        incorrect_calories = [500, 740]
+        self.assertNotEqual(actual_calories, incorrect_calories, "Calories Burned are equal!")
+
+    def test_drw_empty_workout_table_contains_subheader(self):
+        """Tests that the correct message is displayed for an empty workout list."""
+        app = AppTest.from_function(display_recent_workouts, kwargs={"workouts_list": []})
+        app.run()
+        self.assertIn("No Workout Data To Display", [sub.value for sub in app.subheader], "Empty list message not found!")
+        self.assertEqual(app.table, [], "Table should not be displayed for empty list.")
 
 
 if __name__ == "__main__":
