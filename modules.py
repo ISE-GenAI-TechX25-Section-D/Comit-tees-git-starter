@@ -38,6 +38,8 @@ def display_my_custom_component(value):
 
 #used gemini for assistance
 def display_post(user_id):
+    import streamlit as sl
+    from data_fetcher import get_user_posts, users
     """
     Description:
         Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post

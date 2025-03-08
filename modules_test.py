@@ -9,18 +9,50 @@
 import unittest
 import streamlit as sl
 from streamlit.testing.v1 import AppTest
-from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts
+from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts, users
+from data_fetcher import get_user_posts
+from unittest.mock import patch, Mock
 
 
 # Write your tests below
 
+#used gemini for assistance
 class TestDisplayPost(unittest.TestCase):
-    """Tests the display_post function."""
+    """
+    Tests the display_post function:
+        valid user + valid friend
+        invalid user
+        invalid friend
+    """
+    @patch('streamlit.image')
+    @patch('streamlit.subheader')
+    @patch('streamlit.write')
+    @patch('streamlit.markdown')
+    def test_valid_user_posts(self, mock_markdown, mock_write, mock_subheader, mock_image):
+        #checks if the info is on the page if user and friends are valid
+        display_post('user1')
+        self.assertTrue(mock_subheader.call_count > 0)
+        self.assertTrue(mock_write.call_count > 0)
+        self.assertTrue(mock_image.call_count > 0)
+        self.assertTrue(mock_markdown.call_count > 0)
 
-    def test_foo(self):
-        """Tests foo."""
-        pass
+    @patch('streamlit.error')
+    def test_invalid_user(self, mock_error):
+        #checks for error if invalid user
+        display_post('invalid_user')
+        mock_error.assert_called_once_with("User not found.")
 
+    @patch('streamlit.warning')
+    def test_invalid_friend(self, mock_warning):
+        #checks for error if invalid friend
+        original_friends = users['user1']['friends']
+        users['user1']['friends'] = ['invalid_friend']  # Add invalid friend
+
+        display_post('user1')
+
+        mock_warning.assert_called_once_with("Friend ID 'invalid_friend' not found.")
+
+        users['user1']['friends'] = original_friends #restore friends list.
 
 class TestDisplayActivitySummary(unittest.TestCase):
     """Tests the display_activity_summary function using Streamlit's AppTest."""
