@@ -201,12 +201,52 @@ class TestDisplayActivitySummary(unittest.TestCase):
         self.assertEqual(test_progress_bar_amount, self.app.session_state.weekly_calorie_progress_amount)
 
 
-class TestDisplayGenAiAdvice(unittest.TestCase):
-    """Tests the display_genai_advice function."""
 
-    def test_foo(self):
-        """Tests foo."""
-        pass
+class TestDisplayGenAIAdvice(unittest.TestCase):
+    """Tests the display_genai_advice function using Streamlit's AppTest."""
+   
+
+    def setUp(self):
+        """Set up the AppTest environment with test input values."""
+        self.test_timestamp = "2024-03-07 12:00:00"
+        self.test_content = "Stay hydrated and take breaks between workouts."
+        self.test_image = "https://www.google.com/imgres?q=picture%20of%20water&imgurl=https%3A%2F%2Fmedia.istockphoto.com%2Fid%2F491962870%2Fphoto%2Fmineral-water-is-being-poured-into-glass.jpg%3Fs%3D612x612%26w%3D0%26k%3D20%26c%3DSyuhabOpDKyVo78GtFcOi_7j6r5e4BYMtZFQtDdC7UE%3D&imgrefurl=https%3A%2F%2Fwww.istockphoto.com%2Fphotos%2Fpure-water&docid=5s6c7T7yGr9fbM&tbnid=rHwc6oimw3j6SM&vet=12ahUKEwjwvrTloPmLAxW5M9AFHRRQEB8QM3oECBgQAA..i&w=612&h=459&hcb=2&ved=2ahUKEwjwvrTloPmLAxW5M9AFHRRQEB8QM3oECBgQAA"  
+        
+        self.app = AppTest.from_function(
+            display_genai_advice,
+            kwargs={
+                "timestamp": self.test_timestamp,
+                "content": self.test_content,
+                "image": self.test_image
+            }
+        )
+        
+        self.app.run()  # Run the app to apply testing
+    
+    def test_title_existence(self):
+        """Check if the title is present."""
+        title_elements = [el.value for el in self.app.title]
+
+        # Check for title
+        found_title = any("AI Fitness Coach" in text for text in title_elements)
+        self.assertTrue(found_title, "Title 'AI Fitness Coach title' not found!")
+    
+    def test_subheader_existence(self):
+        """Check if the subheader is present."""
+        subheader_elements = [el.value for el in self.app.subheader]
+        self.assertTrue(any("Personalized advice based on your activities" in text for text in subheader_elements),
+                        "Subheader 'Personalized advice based on your activities' not found!")
+    
+    def test_markdown_content(self):
+        """Check if the content is correctly displayed."""
+        markdown_elements = [el.value for el in self.app.markdown]
+        self.assertIn(self.test_content, markdown_elements, "Advice content not displayed correctly!")
+    
+    def test_timestamp_display(self):
+        """Check if the timestamp is correctly displayed."""
+        markdown_elements = [el.value for el in self.app.markdown]
+        expected_timestamp_text = f"Last updated: {self.test_timestamp}"
+        self.assertIn(expected_timestamp_text, markdown_elements, "Timestamp not displayed correctly!")
 
 
 class TestDisplayRecentWorkouts(unittest.TestCase):
