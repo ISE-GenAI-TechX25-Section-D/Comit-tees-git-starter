@@ -86,15 +86,16 @@ class TestDisplayActivitySummary(unittest.TestCase):
 
         # Asked LLM help on how to pass kwargs
         self.app = AppTest.from_function(display_activity_summary, kwargs={"workouts_list": self.test_workouts})
+        # Line written by ChatGPT
 
         self.app.run()  # Run the application to apply testing
 
         self.subheaders = [subh for subh in self.app.subheader]
 
         # Calculate expected totals
-        expected_distance = sum(workout["distance"] for workout in self.test_workouts)
-        expected_steps = sum(workout["steps"] for workout in self.test_workouts)
-        expected_calories = sum(workout["calories_burned"] for workout in self.test_workouts)
+        expected_distance = sum(workout["distance"] for workout in self.test_workouts) # Line written by ChatGPT
+        expected_steps = sum(workout["steps"] for workout in self.test_workouts) # Line written by ChatGPT
+        expected_calories = sum(workout["calories_burned"] for workout in self.test_workouts) # Line written by ChatGPT
 
         self.total_distance = expected_distance
         self.total_steps = expected_steps
@@ -171,12 +172,10 @@ class TestDisplayActivitySummary(unittest.TestCase):
         # Line written by ChatGPT
         df = pd.DataFrame(df_element[0].value._data)  # Convert it back to a Pandas DataFrame
         # Line written by ChatGPT
-        
+
         self.assertIsInstance(df, pd.DataFrame)  # Ensure it's a DataFrame
         # Line written by ChatGPT
 
-
-        
         workout_keys = df.columns.tolist()
 
         for key in workout_keys:
@@ -197,6 +196,7 @@ class TestDisplayActivitySummary(unittest.TestCase):
         self.assertEqual(self.app.session_state.weekly_calorie_goal, 450) # Default calorie goal for now (hardcoded)
 
         test_progress_bar_amount = min(((self.total_calories / 450) * 100), 100)
+        # Line written by ChatGPT
 
         self.assertEqual(test_progress_bar_amount, self.app.session_state.weekly_calorie_progress_amount)
 
