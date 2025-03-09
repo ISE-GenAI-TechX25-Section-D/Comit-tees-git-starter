@@ -27,9 +27,7 @@ def display_app_page():
         display_activity_summary(get_user_workouts(userId))
     with genai_advice:
         display_genai_advice(get_genai_advice(userId)['timestamp'],get_genai_advice(userId)['content'],get_genai_advice(userId)['image'] )
-
-
-
+        
 # This is the starting point for your app. You do not need to change these lines
 if __name__ == '__main__':
     display_app_page()
