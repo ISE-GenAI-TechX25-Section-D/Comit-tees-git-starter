@@ -6,6 +6,10 @@ John
 , Evan
 , Diego A. Perez Gandarillas
 
+## Deployed App URL
+
+Here is the url to the deployed app: https://ise-genai-d5-pzs2cxtsfq-uc.a.run.app
+
 ## How to run the streamlit app
 
 ### Running the Streamlit app for development
