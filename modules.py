@@ -151,13 +151,16 @@ def display_activity_summary(workouts_list):
     # Workout Details Table
     sl.subheader("Workout Details")
     df = pd.DataFrame(workouts)
+    # Line written by ChatGPT
     sl.dataframe(df[["start_timestamp", "end_timestamp", "distance", "steps", "calories_burned"]])
+    # Line written by ChatGPT
     
     # Weekly Calorie Progress
     sl.subheader("Weekly Calorie Progress")
     week_goal = 450  # Default weekly goal
     sl.session_state.weekly_calorie_goal = week_goal
-    progress_bar_amount = min(((total_calories / week_goal) * 100), 1.0)
+    progress_bar_amount = min(((total_calories / week_goal) * 100), 100)
+    # Line written by ChatGPT
     sl.session_state.weekly_calorie_progress_amount = progress_bar_amount
     sl.progress(progress_bar_amount / 100)
     sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")

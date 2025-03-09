@@ -168,9 +168,14 @@ class TestDisplayActivitySummary(unittest.TestCase):
 
         # Get the actual dataframe from the Streamlit test response
         df_element = self.app.dataframe  # This is a Streamlit ElementList
+        # Line written by ChatGPT
         df = pd.DataFrame(df_element[0].value._data)  # Convert it back to a Pandas DataFrame
-
+        # Line written by ChatGPT
+        
         self.assertIsInstance(df, pd.DataFrame)  # Ensure it's a DataFrame
+        # Line written by ChatGPT
+
+
         
         workout_keys = df.columns.tolist()
 
@@ -191,7 +196,7 @@ class TestDisplayActivitySummary(unittest.TestCase):
 
         self.assertEqual(self.app.session_state.weekly_calorie_goal, 450) # Default calorie goal for now (hardcoded)
 
-        test_progress_bar_amount = min(((self.total_calories / 450) * 100), 1.0)
+        test_progress_bar_amount = min(((self.total_calories / 450) * 100), 100)
 
         self.assertEqual(test_progress_bar_amount, self.app.session_state.weekly_calorie_progress_amount)
 
