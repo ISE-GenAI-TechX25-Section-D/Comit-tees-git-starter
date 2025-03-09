@@ -14,8 +14,10 @@ from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get
 def display_app_page():
     """Displays the home page of the app."""
     userId = 'user1'
+    user_profile = get_user_profile(userId)
+    user_name = user_profile['username']
 
-    sl.title(f'Welcome {get_user_profile(userId)['username']} to MyFitness!')
+    sl.title(f'Welcome {user_name} to MyFitness!')
 
     posts, recent_workouts, activity_summary, genai_advice = sl.tabs(["Posts", "Recent_Workouts", "Activity Summary", "GenAI Advice"])
 
