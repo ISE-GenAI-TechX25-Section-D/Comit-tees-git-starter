@@ -12,11 +12,6 @@ from internals import create_component
 from data_fetcher import get_user_workouts, get_user_posts, users
 from PIL import Image
 import pandas as pd
-
-
-#add your tab to the list when you're ready, https://docs.streamlit.io/develop/api-reference/layout/st.tabs
-#recent_workouts_tab, post_tab, gen_ai_advice_tab = sl.tabs(['Recent Workouts', 'Posts', 'Gen AI Advice'])
- 
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
     """Displays a 'my custom component' which showcases an example of how custom
@@ -156,13 +151,16 @@ def display_activity_summary(workouts_list):
     # Workout Details Table
     sl.subheader("Workout Details")
     df = pd.DataFrame(workouts)
+    # Line written by ChatGPT
     sl.dataframe(df[["start_timestamp", "end_timestamp", "distance", "steps", "calories_burned"]])
+    # Line written by ChatGPT
     
     # Weekly Calorie Progress
     sl.subheader("Weekly Calorie Progress")
     week_goal = 450  # Default weekly goal
     sl.session_state.weekly_calorie_goal = week_goal
-    progress_bar_amount = min(((total_calories / week_goal) * 100), 1.0)
+    progress_bar_amount = min(((total_calories / week_goal) * 100), 100)
+    # Line written by ChatGPT
     sl.session_state.weekly_calorie_progress_amount = progress_bar_amount
     sl.progress(progress_bar_amount / 100)
     sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")
@@ -181,7 +179,8 @@ def display_recent_workouts(workouts_list):
         Outputs a table to website
     """
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    #with recent_workouts_tab:
+    import pandas as pd
+    
     sl.title('Recent Workouts') 
     if len(workouts_list) == 0:
         sl.subheader("No Workout Data To Display")
