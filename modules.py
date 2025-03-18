@@ -31,7 +31,7 @@ def display_my_custom_component(value):
     create_component(data, html_file_name)
 
 
-#used gemini for assistance
+#used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
 def display_post(user_id):
     import streamlit as sl
     from data_fetcher import get_user_posts, users

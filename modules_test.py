@@ -17,7 +17,7 @@ import pandas as pd
 
 # Write your tests below
 
-#used gemini for assistance
+#used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
 class TestDisplayPost(unittest.TestCase):
     """
     Tests the display_post function:
