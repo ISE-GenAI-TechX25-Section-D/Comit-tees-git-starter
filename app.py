@@ -19,7 +19,7 @@ def display_app_page():
 
     sl.title(f'Welcome {user_name} to MyFitness!')
 
-    posts, recent_workouts, activity_summary, genai_advice = sl.tabs(["Posts", "Recent_Workouts", "Activity Summary", "GenAI Advice"])
+    posts, recent_workouts, activity_summary, genai_advice = sl.tabs(["Posts", "Recent Workouts", "Activity Summary", "GenAI Advice"])
 
     with posts:
         display_post(userId)

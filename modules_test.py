@@ -281,83 +281,54 @@ class TestDisplayRecentWorkouts(unittest.TestCase):
         self.app.run()
 
         self.subheaders = [subh for subh in self.app.subheader]
-        self.dataframe = self.app.table[0].value #gets the pandas dataframe.
+        self.text = [txt for txt in self.app.markdown.values]
     
     def test_drw_contains_title(self):
         "Checks to make sure the title is present"
         titles = [title.value for title in self.app.title]
         self.assertIn("Recent Workouts", titles, "Title 'Recent Workouts' not found!")
+    
+    def test_drw_contains_subheader(self):
+        "Checks to make sure the subheader is present"
+        subheaders = [subh for subh in self.app.subheader.values]
+        self.assertIn(self.test_workouts[0]['workout_id'], subheaders, "Subheader {self.test_workouts[0]['workout_id']} not found!")
 
-    def test_drw_table_contains_correct_columns(self):
-        actual_columns = self.dataframe.columns.tolist() #converts the columns to a list.
-        expected_columns = ['Workout Name', 'Start Date and Time', 'End Date and Time', 'Total Distance', 'Steps', 'Calories Burned']
-        self.assertEqual(actual_columns, expected_columns, "Table columns do not match expected columns!")
+    def test_drw_contains_correct_date(self):
+        expected_date_1 = "Date: " + self.test_workouts[0]["start_timestamp"][:10]
+        expected_date_2 = "Date: " + self.test_workouts[1]["start_timestamp"][:10]
+        self.assertIn(expected_date_1, self.text, f"{expected_date_1} not found!")
+        self.assertIn(expected_date_2, self.text, f"{expected_date_2} not found!")
 
-    def test_drw_table_contains_values(self):
-        actual_workout_names = self.dataframe["Workout Name"].tolist()
-        expected_workout_names = ["workout0", "workout1"]
-        self.assertEqual(actual_workout_names, expected_workout_names, "Workout names are not equal!")
+    def test_drw_contains_correct_time(self):
+        expected_time_1 = "Time: " + self.test_workouts[0]["start_timestamp"][11:] + ' &mdash; ' +  self.test_workouts[0]["end_timestamp"][11:]
+        expected_time_2 = "Time: " + self.test_workouts[1]["start_timestamp"][11:] + ' &mdash; ' + self.test_workouts[1]["end_timestamp"][11:]
+        self.assertIn(expected_time_1, self.text, f"{expected_time_1} not found!")
+        self.assertIn(expected_time_2, self.text, f"{expected_time_2} not found!")
 
-        actual_start_date_time = self.dataframe["Start Date and Time"].tolist()
-        expected_start_date_time = ["2024-03-07 08:00:00", "2024-03-06 07:30:00"]
-        self.assertEqual(actual_start_date_time, expected_start_date_time, "Start Date and Time are not equal!")
+    def test_drw_contains_correct_distance(self):
+        expected_distance_1 = "Distance: " + str(self.test_workouts[0]["distance"]) + ' miles'
+        expected_distance_2 = "Distance: " + str(self.test_workouts[1]["distance"]) + ' miles'
+        self.assertIn(expected_distance_1, self.text, f"{expected_distance_1} not found!")
+        self.assertIn(expected_distance_2, self.text, f"{expected_distance_2} not found!")
 
-        actual_end_date_time = self.dataframe["End Date and Time"].tolist()
-        expected_end_date_time = ["2024-03-07 08:30:00", "2024-03-06 08:00:00"]
-        self.assertEqual(actual_end_date_time, expected_end_date_time, "End Date and Time are not equal!")
+    def test_drw_contains_correct_steps(self):
+        expected_steps_1 = "Steps: " + str(self.test_workouts[0]["steps"])
+        expected_steps_2 = "Steps: " + str(self.test_workouts[1]["steps"])
+        self.assertIn(expected_steps_1, self.text, f"{expected_steps_1} not found!")
+        self.assertIn(expected_steps_2, self.text, f"{expected_steps_2} not found!")
 
-        actual_distance = self.dataframe["Total Distance"].tolist()
-        expected_distance = [3.2, 2.5]
-        self.assertEqual(actual_distance, expected_distance, "Total Distance are not equal!")
-
-        actual_steps = self.dataframe["Steps"].tolist()
-        expected_steps = [4500, 3800]
-        self.assertEqual(actual_steps, expected_steps, "Steps are not equal!")
-
-        actual_calories = self.dataframe["Calories Burned"].tolist()
-        expected_calories = [320, 270]
-        self.assertEqual(actual_calories, expected_calories, "Calories Burned are not equal!")
-
-    def test_drw_data_types(self):
-        """Tests that data types in the table are correct."""
-        if self.app.table:
-            table_element = self.app.table[0]
-            df = table_element.value
-            self.assertTrue(pd.api.types.is_numeric_dtype(df['Total Distance']), "Total Distance should be numeric.")
-            self.assertTrue(pd.api.types.is_numeric_dtype(df['Steps']), "Steps should be numeric.")
-            self.assertTrue(pd.api.types.is_numeric_dtype(df['Calories Burned']), "Calories Burned should be numeric.")
-
-    def test_drw_incorrect_data_not_equal(self):
-        actual_workout_names = self.dataframe["Workout Name"].tolist()
-        incorrect_workout_names = ["workout3", "workout4"]
-        self.assertNotEqual(actual_workout_names, incorrect_workout_names, "Workout names are equal!")
-
-        actual_start_date_time = self.dataframe["Start Date and Time"].tolist()
-        incorrect_start_date_time = ["2025-03-08 08:00:00", "2024-03-09 07:30:00"]
-        self.assertNotEqual(actual_start_date_time, incorrect_start_date_time, "Start Date and Time are equal!")
-
-        actual_end_date_time = self.dataframe["End Date and Time"].tolist()
-        incorrect_end_date_time = ["2024-03-08 08:30:00", "2024-03-09 08:00:00"]
-        self.assertNotEqual(actual_end_date_time, incorrect_end_date_time, "End Date and Time are equal!")
-
-        actual_distance = self.dataframe["Total Distance"].tolist()
-        incorrect_distance = [2.4, 5.7]
-        self.assertNotEqual(actual_distance, incorrect_distance, "Total Distance are equal!")
-
-        actual_steps = self.dataframe["Steps"].tolist()
-        incorrect_steps = [6000, 1500]
-        self.assertNotEqual(actual_steps, incorrect_steps, "Steps are equal!")
-
-        actual_calories = self.dataframe["Calories Burned"].tolist()
-        incorrect_calories = [500, 740]
-        self.assertNotEqual(actual_calories, incorrect_calories, "Calories Burned are equal!")
+    def test_drw_contains_correct_calories(self):
+        expected_calories_1 = "Calories Burned: " + str(self.test_workouts[0]["calories_burned"]) + ' calories'
+        expected_calories_2 = "Calories Burned: " + str(self.test_workouts[1]["calories_burned"]) + ' calories'
+        self.assertIn(expected_calories_1, self.text, f"{expected_calories_1} not found!")
+        self.assertIn(expected_calories_2, self.text, f"{expected_calories_2} not found!")  
 
     def test_drw_empty_workout_table_contains_subheader(self):
         """Tests that the correct message is displayed for an empty workout list."""
         app = AppTest.from_function(display_recent_workouts, kwargs={"workouts_list": []})
         app.run()
         self.assertIn("No Workout Data To Display", [sub.value for sub in app.subheader], "Empty list message not found!")
-        self.assertEqual(app.table, [], "Table should not be displayed for empty list.")
+        self.assertRaises(IndexError, lambda: app.text[0].value) #IndexError thrown if there's no text being displayed
 
 
 if __name__ == "__main__":

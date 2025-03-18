@@ -167,41 +167,37 @@ def display_activity_summary(workouts_list):
 
 
 def display_recent_workouts(workouts_list):
-    import streamlit as sl
-    import pandas as pd
     """
     Description:
-        Displays information about the recent workouts from workouts_list by showing a table of information (and potentially a map, but doesnt look right)
+        Displays information about the recent workouts from workouts_list by showing relevant information about each workout
     Input: 
         workouts_list (list):  contains all of the information about the workouts to be displayed
     Output:
         Returns nothing
-        Outputs a table to website
+        Outputs relevant information to website
     """
+    import streamlit as sl
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    import pandas as pd
-    
     sl.title('Recent Workouts') 
     if len(workouts_list) == 0:
         sl.subheader("No Workout Data To Display")
         return
     elif 'workouts_list' not in sl.session_state:
         sl.session_state.workouts_list = workouts_list
-    mod_workouts_list = []
-    for i in range(len(sl.session_state.workouts_list)):
-        mod_workouts_list.append({
-            'workout_id': workouts_list[i]['workout_id'],
-            'start_timestamp': workouts_list[i]['start_timestamp'],
-            'end_timestamp': workouts_list[i]['end_timestamp'],
-            'distance': workouts_list[i]['distance'],
-            'steps': workouts_list[i]['steps'],
-            'calories_burned': workouts_list[i]['calories_burned']
-        })
-        
-    df = pd.DataFrame(mod_workouts_list)
-    df.columns = ['Workout Name', 'Start Date and Time', 'End Date and Time', 'Total Distance', 'Steps', 'Calories Burned']
-    sl.table(df)
-
+    for workout in sl.session_state.workouts_list:
+        sl.subheader(workout['workout_id'])
+        date = workout['start_timestamp']
+        date = date[:date.index(' ')]
+        sl.write(f"Date: {date}")
+        workout_time = workout['start_timestamp']
+        start_time = workout_time[workout_time.index(' ')+1:]
+        workout_time = workout['end_timestamp']
+        end_time = workout_time[workout_time.index(' ')+1:]
+        sl.write(f"Time: {start_time} &mdash; {end_time}")
+        sl.write(f"Distance: {workout['distance']} miles")
+        sl.write(f"Steps: {workout['steps']}")
+        sl.write(f"Calories Burned: {workout['calories_burned']} calories")
+        sl.write("---")
 
 def display_genai_advice(timestamp, content, image):
     import streamlit as sl
