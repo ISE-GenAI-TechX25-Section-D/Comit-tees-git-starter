@@ -24,7 +24,7 @@ def display_app_page():
     with posts:
         display_post(userId)
     with recent_workouts:
-        display_recent_workouts(get_user_workouts(userId))
+        display_recent_workouts(userId)
     with activity_summary:
         display_activity_summary(get_user_workouts(userId))
     with genai_advice:
