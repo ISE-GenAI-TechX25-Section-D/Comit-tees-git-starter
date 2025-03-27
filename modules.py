@@ -166,19 +166,21 @@ def display_activity_summary(workouts_list):
     sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")
 
 
-def display_recent_workouts(workouts_list):
+def display_recent_workouts(userId='user1', workouts_list=None):
     """
     Description:
-        Displays information about the recent workouts from workouts_list by showing relevant information about each workout
+        Displays information about the recent workouts by the user by showing relevant information about each workout
     Input: 
-        workouts_list (list):  contains all of the information about the workouts to be displayed
+        userId (string):  the ID of the user whose workouts are being displayed, used as an argument to get_user_workouts
     Output:
         Returns nothing
         Outputs relevant information to website
     """
     import streamlit as sl
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    sl.title('Recent Workouts') 
+    sl.title('Recent Workouts')
+    if workouts_list is None:
+        workouts_list = get_user_workouts(userId)
     if len(workouts_list) == 0:
         sl.subheader("No Workout Data To Display")
         return
@@ -198,6 +200,7 @@ def display_recent_workouts(workouts_list):
         sl.write(f"Steps: {workout['steps']}")
         sl.write(f"Calories Burned: {workout['calories_burned']} calories")
         sl.write("---")
+display_recent_workouts(workouts_list=[])
 
 def display_genai_advice(timestamp, content, image):
     import streamlit as sl
