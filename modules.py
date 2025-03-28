@@ -83,8 +83,8 @@ def display_post(user_id):
 #     main()
 # """
 
-
-def display_activity_summary(workouts_list):
+# display_activity_summary(fetcher=lambda: get_user_workouts(user_id)
+def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = dependency injection, this set up allows to pass hardcoded data still
     import streamlit as sl
     import pandas as pd
     
@@ -109,6 +109,9 @@ def display_activity_summary(workouts_list):
     Output:
         None
     """
+
+    if fetcher is not None:
+        workouts_list = fetcher()
 
     sl.title("🏋️ Activity Fitness Summary")
     
