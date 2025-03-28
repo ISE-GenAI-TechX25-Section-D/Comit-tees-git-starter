@@ -10,7 +10,7 @@ import unittest
 import streamlit as sl
 from streamlit.testing.v1 import AppTest
 from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts, users
-from data_fetcher import get_user_posts
+from data_fetcher import get_user_posts, get_user_workouts
 from unittest.mock import patch, Mock
 import pandas as pd
 
@@ -57,8 +57,8 @@ class TestDisplayPost(unittest.TestCase):
 
 class TestDisplayActivitySummary(unittest.TestCase):
     """Tests the display_activity_summary function using Streamlit's AppTest."""
-
-    def setUp(self):
+    @patch("app.get_user_workouts")  # Patch it where it's USED
+    def setUp(self, mock_fetch):
         """Set up the AppTest environment using from_function()"""
         
         self.test_workouts = [
@@ -84,9 +84,15 @@ class TestDisplayActivitySummary(unittest.TestCase):
             }
         ]
 
+        mock_fetch.return_value = self.test_workouts
+
+        fetcher = lambda: mock_fetch("user1")
+
         # Asked LLM help on how to pass kwargs
-        self.app = AppTest.from_function(display_activity_summary, kwargs={"workouts_list": self.test_workouts})
+        #self.app = AppTest.from_function(display_activity_summary, kwargs={"workouts_list": self.test_workouts})
         # Line written by ChatGPT
+
+        self.app = AppTest.from_function(display_activity_summary, kwargs={"fetcher": fetcher})
 
         self.app.run()  # Run the application to apply testing
 

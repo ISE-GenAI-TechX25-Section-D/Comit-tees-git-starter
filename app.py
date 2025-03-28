@@ -26,7 +26,7 @@ def display_app_page():
     with recent_workouts:
         display_recent_workouts(userId)
     with activity_summary:
-        display_activity_summary(get_user_workouts(userId))
+        display_activity_summary(fetcher=lambda:get_user_workouts(userId)) # Using dependency injection
     with genai_advice:
         display_genai_advice(get_genai_advice(userId)['timestamp'],get_genai_advice(userId)['content'],get_genai_advice(userId)['image'] )
         
