@@ -57,7 +57,7 @@ class TestDisplayPost(unittest.TestCase):
 
 class TestDisplayActivitySummary(unittest.TestCase):
     """Tests the display_activity_summary function using Streamlit's AppTest."""
-    @patch("app.get_user_workouts")  # Patch it where it's USED
+    @patch("data_fetcher.get_user_workouts")  # Patch it where it's USED
     def setUp(self, mock_fetch):
         """Set up the AppTest environment using from_function()"""
         
