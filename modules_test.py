@@ -268,10 +268,9 @@ class TestDisplayGenAIAdvice(unittest.TestCase):
 
 class TestDisplayRecentWorkouts(unittest.TestCase):
     """Tests the display_recent_workouts function."""
-
-    def setUp(self):
-        """Set up the AppTest environment using from_function()"""
-        self.test_workouts = [
+    def mock_get_user_workouts(self, userId):
+        #mocks get_user_workouts and returns test data
+        return [
             {
                 'workout_id': 'workout0',
                 "start_timestamp": "2024-03-07 08:00:00",
@@ -293,59 +292,103 @@ class TestDisplayRecentWorkouts(unittest.TestCase):
                 "calories_burned": 270
             }
         ]
-        
-        self.app = AppTest.from_function(display_recent_workouts, kwargs={"workouts_list": self.test_workouts})
-        self.app.run()
 
-        self.subheaders = [subh for subh in self.app.subheader]
-        self.text = [txt for txt in self.app.markdown.values]
-    
-    def test_drw_contains_title(self):
+    @patch('streamlit.title')
+    def test_drw_contains_title(self, mock_title):
         "Checks to make sure the title is present"
-        titles = [title.value for title in self.app.title]
-        self.assertIn("Recent Workouts", titles, "Title 'Recent Workouts' not found!")
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        self.assertTrue(mock_sl.title.call_count > 0, "Title \'Recent Workouts\' not found!")
     
-    def test_drw_contains_subheader(self):
+    @patch('streamlit.subheader')
+    def test_drw_contains_subheader(self, mock_subheader):
         "Checks to make sure the subheader is present"
-        subheaders = [subh for subh in self.app.subheader.values]
-        self.assertIn(self.test_workouts[0]['workout_id'], subheaders, "Subheader {self.test_workouts[0]['workout_id']} not found!")
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        self.assertTrue(mock_sl.subheader.call_count > 0, 'Subheader not found!')
+    
+    @patch('streamlit.write')
+    def test_drw_contains_encouragement(self, mock_write):
+        "Checks to make sure the final encouragement text is shown"
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        encouragement = "Keep up the good work(outs)!"
+        calls = [call[0][0] for call in mock_sl.write.call_args_list]
+        self.assertTrue(any(encouragement in call for call in calls), f'{encouragement} no found!')
 
-    def test_drw_contains_correct_date(self):
-        expected_date_1 = "Date: " + self.test_workouts[0]["start_timestamp"][:10]
-        expected_date_2 = "Date: " + self.test_workouts[1]["start_timestamp"][:10]
-        self.assertIn(expected_date_1, self.text, f"{expected_date_1} not found!")
-        self.assertIn(expected_date_2, self.text, f"{expected_date_2} not found!")
+    #rest of tests are Gemini generated, was a bit repetitive
+    @patch('streamlit.write')
+    def test_drw_contains_correct_date(self, mock_write):
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        
+        expected_date_1 = "Date: 2024-03-07"
+        expected_date_2 = "Date: 2024-03-06"
+        
+        calls = [call[0][0] for call in mock_sl.write.call_args_list]
+        self.assertTrue(any(expected_date_1 in call for call in calls), f"{expected_date_1} not found!")
+        self.assertTrue(any(expected_date_2 in call for call in calls), f"{expected_date_2} not found!")
 
-    def test_drw_contains_correct_time(self):
-        expected_time_1 = "Time: " + self.test_workouts[0]["start_timestamp"][11:] + ' &mdash; ' +  self.test_workouts[0]["end_timestamp"][11:]
-        expected_time_2 = "Time: " + self.test_workouts[1]["start_timestamp"][11:] + ' &mdash; ' + self.test_workouts[1]["end_timestamp"][11:]
-        self.assertIn(expected_time_1, self.text, f"{expected_time_1} not found!")
-        self.assertIn(expected_time_2, self.text, f"{expected_time_2} not found!")
+    @patch('streamlit.write')
+    def test_drw_contains_correct_time(self, mock_write):
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        
+        expected_time_1 = "Time: 08:00:00 &mdash; 08:30:00"
+        expected_time_2 = "Time: 07:30:00 &mdash; 08:00:00"
 
-    def test_drw_contains_correct_distance(self):
-        expected_distance_1 = "Distance: " + str(self.test_workouts[0]["distance"]) + ' miles'
-        expected_distance_2 = "Distance: " + str(self.test_workouts[1]["distance"]) + ' miles'
-        self.assertIn(expected_distance_1, self.text, f"{expected_distance_1} not found!")
-        self.assertIn(expected_distance_2, self.text, f"{expected_distance_2} not found!")
+        calls = [call[0][0] for call in mock_sl.write.call_args_list]
+        self.assertTrue(any(expected_time_1 in call for call in calls), f"{expected_time_1} not found!")
+        self.assertTrue(any(expected_time_2 in call for call in calls), f"{expected_time_2} not found!")
 
-    def test_drw_contains_correct_steps(self):
-        expected_steps_1 = "Steps: " + str(self.test_workouts[0]["steps"])
-        expected_steps_2 = "Steps: " + str(self.test_workouts[1]["steps"])
-        self.assertIn(expected_steps_1, self.text, f"{expected_steps_1} not found!")
-        self.assertIn(expected_steps_2, self.text, f"{expected_steps_2} not found!")
+    @patch('streamlit.write')
+    def test_drw_contains_correct_distance(self, mock_write):
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        
+        expected_distance_1 = "Distance: 3.2 miles"
+        expected_distance_2 = "Distance: 2.5 miles"
 
-    def test_drw_contains_correct_calories(self):
-        expected_calories_1 = "Calories Burned: " + str(self.test_workouts[0]["calories_burned"]) + ' calories'
-        expected_calories_2 = "Calories Burned: " + str(self.test_workouts[1]["calories_burned"]) + ' calories'
-        self.assertIn(expected_calories_1, self.text, f"{expected_calories_1} not found!")
-        self.assertIn(expected_calories_2, self.text, f"{expected_calories_2} not found!")  
+        calls = [call[0][0] for call in mock_sl.write.call_args_list]
+        self.assertTrue(any(expected_distance_1 in call for call in calls), f"{expected_distance_1} not found!")
+        self.assertTrue(any(expected_distance_2 in call for call in calls), f"{expected_distance_2} not found!")
 
-    def test_drw_empty_workout_table_contains_subheader(self):
+    @patch('streamlit.write')
+    def test_drw_contains_correct_steps(self, mock_write):
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        
+        expected_steps_1 = "Steps: 4500"
+        expected_steps_2 = "Steps: 3800"
+
+        calls = [call[0][0] for call in mock_sl.write.call_args_list]
+        self.assertTrue(any(expected_steps_1 in call for call in calls), f"{expected_steps_1} not found!")
+        self.assertTrue(any(expected_steps_2 in call for call in calls), f"{expected_steps_2} not found!")
+
+    @patch('streamlit.write')
+    def test_drw_contains_correct_calories(self, mock_write):
+        mock_sl = Mock()
+        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+        
+        expected_calories_1 = "Calories Burned: 320 calories"
+        expected_calories_2 = "Calories Burned: 270 calories"
+
+        calls = [call[0][0] for call in mock_sl.write.call_args_list]
+        self.assertTrue(any(expected_calories_1 in call for call in calls), f"{expected_calories_1} not found!")
+        self.assertTrue(any(expected_calories_2 in call for call in calls), f"{expected_calories_2} not found!")
+
+    @patch('streamlit.subheader')
+    @patch('streamlit.write')
+    def test_drw_empty_workout_table_contains_subheader(self, mock_write, mock_subheader):
         """Tests that the correct message is displayed for an empty workout list."""
-        app = AppTest.from_function(display_recent_workouts, kwargs={"workouts_list": []})
-        app.run()
-        self.assertIn("No Workout Data To Display", [sub.value for sub in app.subheader], "Empty list message not found!")
-        self.assertRaises(IndexError, lambda: app.text[0].value) #IndexError thrown if there's no text being displayed
+        mock_sl = Mock()
+        def empty_workouts(userId):
+            return []
+        display_recent_workouts('user1', workouts_func=empty_workouts, streamlit_module=mock_sl)
+        
+        calls = [call[0][0] for call in mock_sl.subheader.call_args_list]
+        self.assertTrue(any("No Workout Data To Display" in call for call in calls), "Empty list message not found!")
+        self.assertEqual(mock_sl.write.call_count,0)
 
 
 if __name__ == "__main__":

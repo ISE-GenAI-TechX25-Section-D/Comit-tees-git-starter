@@ -167,41 +167,39 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     sl.write(f"**Weekly Goal: {week_goal} cal | Current: {total_calories} cal**")
 
 
-def display_recent_workouts(userId='user1', workouts_list=None):
+def display_recent_workouts(userId, workouts_func=get_user_workouts, streamlit_module=sl):
     """
     Description:
         Displays information about the recent workouts by the user by showing relevant information about each workout
     Input: 
         userId (string):  the ID of the user whose workouts are being displayed, used as an argument to get_user_workouts
+        workouts_func (function): the function to be called to get the user's workout data
+        streamlit_module (module): the module to be used to create the website
     Output:
         Returns nothing
         Outputs relevant information to website
     """
-    import streamlit as sl
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    sl.title('Recent Workouts')
-    if workouts_list is None:
-        workouts_list = get_user_workouts(userId)
+    streamlit_module.title('💪Recent Workouts💪')
+    workouts_list = workouts_func(userId)
     if len(workouts_list) == 0:
-        sl.subheader("No Workout Data To Display")
+        streamlit_module.subheader("No Workout Data To Display")
         return
-    elif 'workouts_list' not in sl.session_state:
-        sl.session_state.workouts_list = workouts_list
-    for workout in sl.session_state.workouts_list:
-        sl.subheader(workout['workout_id'])
+    for workout in workouts_list:
+        streamlit_module.subheader(workout['workout_id'])
         date = workout['start_timestamp']
         date = date[:date.index(' ')]
-        sl.write(f"Date: {date}")
+        streamlit_module.write(f"📅Date: {date}")
         workout_time = workout['start_timestamp']
         start_time = workout_time[workout_time.index(' ')+1:]
         workout_time = workout['end_timestamp']
         end_time = workout_time[workout_time.index(' ')+1:]
-        sl.write(f"Time: {start_time} &mdash; {end_time}")
-        sl.write(f"Distance: {workout['distance']} miles")
-        sl.write(f"Steps: {workout['steps']}")
-        sl.write(f"Calories Burned: {workout['calories_burned']} calories")
-        sl.write("---")
-display_recent_workouts(workouts_list=[])
+        streamlit_module.write(f"⏱️Time: {start_time} &mdash; {end_time}")
+        streamlit_module.write(f"↔️Distance: {workout['distance']} miles")
+        streamlit_module.write(f"🚶Steps: {workout['steps']}")
+        streamlit_module.write(f"🔥Calories Burned: {workout['calories_burned']} calories")
+        streamlit_module.write("---")
+    streamlit_module.subheader("Keep up the good work(outs)!")
 
 def display_genai_advice(timestamp, content, image):
     import streamlit as sl
