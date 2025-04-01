@@ -307,13 +307,13 @@ class TestDisplayRecentWorkouts(unittest.TestCase):
         display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
         self.assertTrue(mock_sl.subheader.call_count > 0, 'Subheader not found!')
     
-    @patch('streamlit.write')
+    @patch('streamlit.subheader')
     def test_drw_contains_encouragement(self, mock_write):
         "Checks to make sure the final encouragement text is shown"
         mock_sl = Mock()
         display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
         encouragement = "Keep up the good work(outs)!"
-        calls = [call[0][0] for call in mock_sl.write.call_args_list]
+        calls = [call[0][0] for call in mock_sl.subheader.call_args_list]
         self.assertTrue(any(encouragement in call for call in calls), f'{encouragement} no found!')
 
     #rest of tests are Gemini generated, was a bit repetitive
