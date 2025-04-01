@@ -32,9 +32,8 @@ def display_my_custom_component(value):
 
 
 #used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
-def display_post(user_id):
-    import streamlit as sl
-    from data_fetcher import get_user_posts, users
+def display_post(user_id, users_dict=users, get_posts_func=get_user_posts, streamlit_module=sl):
+
     """
     Description:
         Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post
@@ -51,24 +50,23 @@ def display_post(user_id):
     user = users[user_id]
     friends = user['friends']
 
-    sl.header("Friends' Posts")
+    streamlit_module.header("Friends' Posts")
 
     for friend_id in friends:
-        if friend_id in users:
-            
-            friend = users[friend_id]
-            posts = get_user_posts(friend_id)
+        if friend_id in users_dict:
+            friend = users_dict[friend_id]
+            posts = get_posts_func(friend_id)
 
-            sl.image(friend['profile_image'], width=100)
-            sl.subheader(f"{friend['full_name']} (@{friend['username']})")
+            streamlit_module.image(friend['profile_image'], width=100)
+            streamlit_module.subheader(f"{friend['full_name']} (@{friend['username']})")
             for post in posts:
-                sl.write(f"**{post['content']}**")
-                sl.write(f"Posted on: {post['timestamp']}")
+                streamlit_module.write(f"**{post['content']}**")
+                streamlit_module.write(f"Posted on: {post['timestamp']}")
                 if post['image']:
-                    sl.image(post['image'], width=200)
-                sl.markdown("---")  # Separator between posts
+                    streamlit_module.image(post['image'], width=200)
+                streamlit_module.markdown("---")  # Separator between posts
         else:
-            sl.warning(f"Friend ID '{friend_id}' not found.")
+            streamlit_module.warning(f"Friend ID '{friend_id}' not found.")
 
 # """
 # def main():
@@ -83,8 +81,8 @@ def display_post(user_id):
 #     main()
 # """
 
-
-def display_activity_summary(workouts_list):
+# display_activity_summary(fetcher=lambda: get_user_workouts(user_id)
+def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = dependency injection, this set up allows to pass hardcoded data still
     import streamlit as sl
     import pandas as pd
     
@@ -109,6 +107,9 @@ def display_activity_summary(workouts_list):
     Output:
         None
     """
+
+    if fetcher is not None:
+        workouts_list = fetcher()
 
     sl.title("🏋️ Activity Fitness Summary")
     

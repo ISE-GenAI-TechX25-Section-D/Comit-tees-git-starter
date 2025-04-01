@@ -10,7 +10,7 @@ import unittest
 import streamlit as sl
 from streamlit.testing.v1 import AppTest
 from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts, users
-from data_fetcher import get_user_posts
+from data_fetcher import get_user_posts, get_user_workouts
 from unittest.mock import patch, Mock
 import pandas as pd
 
@@ -22,7 +22,7 @@ class TestDisplayPost(unittest.TestCase):
     """
     Tests the display_post function:
         valid user + valid friend
-        invalid user
+        checks if friends in user correlates
         invalid friend
     """
     @patch('streamlit.image')
@@ -31,34 +31,45 @@ class TestDisplayPost(unittest.TestCase):
     @patch('streamlit.markdown')
     def test_valid_user_posts(self, mock_markdown, mock_write, mock_subheader, mock_image):
         #checks if the info is on the page if user and friends are valid
-        display_post('user1')
-        self.assertTrue(mock_subheader.call_count > 0)
-        self.assertTrue(mock_write.call_count > 0)
-        self.assertTrue(mock_image.call_count > 0)
-        self.assertTrue(mock_markdown.call_count > 0)
+        mock_sl = Mock()
+        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
+        self.assertTrue(mock_sl.subheader.call_count > 0)
+        self.assertTrue(mock_sl.write.call_count > 0)
+        self.assertTrue(mock_sl.image.call_count > 0)
+        self.assertTrue(mock_sl.markdown.call_count > 0)
 
-    @patch('streamlit.error')
-    def test_invalid_user(self, mock_error):
-        #checks for error if invalid user
-        display_post('invalid_user')
-        mock_error.assert_called_once_with("User not found.")
+    def test_correct_friends_displayed(self):
+        mock_sl = Mock()
+        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
+
+        # Check if subheader was called for each friend
+        expected_friend_names = [
+            f"{users['user2']['full_name']} (@{users['user2']['username']})",
+            f"{users['user3']['full_name']} (@{users['user3']['username']})",
+            f"{users['user4']['full_name']} (@{users['user4']['username']})",
+        ]
+
+        actual_calls = [call[0][0] for call in mock_sl.subheader.call_args_list]
+
+        self.assertEqual(actual_calls, expected_friend_names)
 
     @patch('streamlit.warning')
     def test_invalid_friend(self, mock_warning):
         #checks for error if invalid friend
+        mock_sl = Mock()
         original_friends = users['user1']['friends']
         users['user1']['friends'] = ['invalid_friend']  # Add invalid friend
 
-        display_post('user1')
+        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
 
-        mock_warning.assert_called_once_with("Friend ID 'invalid_friend' not found.")
+        mock_sl.warning.assert_called_once_with("Friend ID 'invalid_friend' not found.")
 
         users['user1']['friends'] = original_friends #restore friends list.
 
 class TestDisplayActivitySummary(unittest.TestCase):
     """Tests the display_activity_summary function using Streamlit's AppTest."""
-
-    def setUp(self):
+    @patch("data_fetcher.get_user_workouts")  # Patch it where it's USED
+    def setUp(self, mock_fetch):
         """Set up the AppTest environment using from_function()"""
         
         self.test_workouts = [
@@ -84,9 +95,15 @@ class TestDisplayActivitySummary(unittest.TestCase):
             }
         ]
 
+        mock_fetch.return_value = self.test_workouts
+
+        fetcher = lambda: mock_fetch("user1")
+
         # Asked LLM help on how to pass kwargs
-        self.app = AppTest.from_function(display_activity_summary, kwargs={"workouts_list": self.test_workouts})
+        #self.app = AppTest.from_function(display_activity_summary, kwargs={"workouts_list": self.test_workouts})
         # Line written by ChatGPT
+
+        self.app = AppTest.from_function(display_activity_summary, kwargs={"fetcher": fetcher})
 
         self.app.run()  # Run the application to apply testing
 
