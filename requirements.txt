@@ -1,3 +1,5 @@
 streamlit==1.43.0 # Directly specify streamlit version to be able to use AppTest
 pytest
-pandas #added by John, added just in case an issue would arise from it not being in requirements
+pandas
+google-cloud-bigquery==3.26.0
+datetime

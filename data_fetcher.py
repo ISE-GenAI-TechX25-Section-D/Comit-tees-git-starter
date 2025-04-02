@@ -9,6 +9,8 @@
 #############################################################################
 
 import random
+from google.cloud import bigquery
+from datetime import datetime
 
 users = {
     'user1': {
@@ -68,30 +70,30 @@ def get_user_sensor_data(user_id, workout_id):
     return sensor_data
 
 
-def get_user_workouts(user_id):
-    """Returns a list of user's workouts.
-
-    This function currently returns random data. You will re-write it in Unit 3.
+def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
+    """Returns a list of user's workouts from the BigQuery database.
     """
+    client = query_db.Client()
+    query = f""" SELECT * FROM `diegoperez16techx25.Committees.Workouts` WHERE UserId = '{user_id}' """
+    # run this line to authorize queries: gcloud auth application-default login
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+    
+    results = execute_query(client, query)
     workouts = []
-    for index in range(random.randint(1, 3)):
-        random_lat_lng_1 = (
-            1 + random.randint(0, 100) / 100,
-            4 + random.randint(0, 100) / 100,
-        )
-        random_lat_lng_2 = (
-            1 + random.randint(0, 100) / 100,
-            4 + random.randint(0, 100) / 100,
-        )
+    for row in results:
         workouts.append({
-            'workout_id': f'workout{index}',
-            'start_timestamp': '2024-01-01 00:00:00',
-            'end_timestamp': '2024-01-01 00:30:00',
-            'start_lat_lng': random_lat_lng_1,
-            'end_lat_lng': random_lat_lng_2,
-            'distance': random.randint(0, 200) / 10.0,
-            'steps': random.randint(0, 20000),
-            'calories_burned': random.randint(0, 100),
+            'workout_id': row[0],
+            'start_timestamp': row[2].strftime('%Y-%m-%d %H:%M:%S'),
+            'end_timestamp': row[3].strftime('%Y-%m-%d %H:%M:%S'),
+            'start_lat_lng': (row[4], row[5]),
+            'end_lat_lng': (row[6], row[7]),
+            'distance': row[8],
+            'steps': row[9],
+            'calories_burned': row[10]
         })
     return workouts
 
