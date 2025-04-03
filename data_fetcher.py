@@ -97,7 +97,7 @@ def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
         })
     return workouts
 
-
+#used gemini for assistance: 
 def get_user_profile(user_id):
     """Returns information about the given user.
 
@@ -107,24 +107,7 @@ def get_user_profile(user_id):
         raise ValueError(f'User {user_id} not found.')
     return users[user_id]
 
-
-'''def get_user_posts(user_id):
-    """Returns a list of a user's posts.
-
-    This function currently returns random data. You will re-write it in Unit 3.
-    """
-    content = random.choice([
-        'Had a great workout today!',
-        'The AI really motivated me to push myself further, I ran 10 miles!',
-    ])
-    return [{
-        'user_id': user_id,
-        'post_id': 'post1',
-        'timestamp': '2024-01-01 00:00:00',
-        'content': content,
-        'image': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSz0kSuHwimKiIaNdUXwlaLMlkmnTXVC36Qkg&s',
-    }]'''
-
+#used gemini for assistance: 
 def get_user_posts(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of a user's posts from the BigQuery database."""
     client = query_db.Client()
@@ -159,7 +142,7 @@ def get_user_posts(user_id, query_db=bigquery, execute_query=None):
         })
     return posts
 
-
+#used gemini for assistance: 
 def get_user_friends(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of a user's friends from the BigQuery database."""
     client = query_db.Client()

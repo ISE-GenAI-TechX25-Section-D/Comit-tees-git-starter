@@ -17,54 +17,7 @@ import pandas as pd
 
 # Write your tests below
 
-#used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
-'''class TestDisplayPost(unittest.TestCase):
-    """
-    Tests the display_post function:
-        valid user + valid friend
-        checks if friends in user correlates
-        invalid friend
-    """
-    @patch('streamlit.image')
-    @patch('streamlit.subheader')
-    @patch('streamlit.write')
-    @patch('streamlit.markdown')
-    def test_valid_user_posts(self, mock_markdown, mock_write, mock_subheader, mock_image):
-        #checks if the info is on the page if user and friends are valid
-        mock_sl = Mock()
-        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
-        self.assertTrue(mock_sl.subheader.call_count > 0)
-        self.assertTrue(mock_sl.write.call_count > 0)
-        self.assertTrue(mock_sl.image.call_count > 0)
-        self.assertTrue(mock_sl.markdown.call_count > 0)
-
-    def test_correct_friends_displayed(self):
-        mock_sl = Mock()
-        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
-
-        # Check if subheader was called for each friend
-        expected_friend_names = [
-            f"{users['user2']['full_name']} (@{users['user2']['username']})",
-            f"{users['user3']['full_name']} (@{users['user3']['username']})",
-            f"{users['user4']['full_name']} (@{users['user4']['username']})",
-        ]
-
-        actual_calls = [call[0][0] for call in mock_sl.subheader.call_args_list]
-
-        self.assertEqual(actual_calls, expected_friend_names)
-
-    @patch('streamlit.warning')
-    def test_invalid_friend(self, mock_warning):
-        #checks for error if invalid friend
-        mock_sl = Mock()
-        original_friends = users['user1']['friends']
-        users['user1']['friends'] = ['invalid_friend']  # Add invalid friend
-
-        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
-
-        mock_sl.warning.assert_called_once_with("Friend ID 'invalid_friend' not found.")
-
-        users['user1']['friends'] = original_friends #restore friends list.'''
+#used gemini for assistance: 
 
 # Mock data (replace with your actual data)
 users = {

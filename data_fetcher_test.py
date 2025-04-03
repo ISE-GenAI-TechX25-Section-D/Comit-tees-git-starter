@@ -64,7 +64,7 @@ class TestDataFetcher(unittest.TestCase):
         self.assertTrue(workouts[0]['steps'], 9000)
         self.assertTrue(workouts[0]['calories_burned'], 500.0)
 
-        
+#used gemini for assistance:        
 class TestGetUserFriends(unittest.TestCase):
 
     def mock_execute_query_friends(self, client, query):
@@ -108,7 +108,8 @@ class TestGetUserFriends(unittest.TestCase):
         expected_friends = []
 
         self.assertEqual(friends, expected_friends)
-    
+
+#used gemini for assistance:   
 def get_user_posts(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of a user's posts from the BigQuery database."""
     client = query_db.Client()
@@ -143,6 +144,7 @@ def get_user_posts(user_id, query_db=bigquery, execute_query=None):
         })
     return posts
 
+#used gemini for assistance: 
 class TestGetUserPosts(unittest.TestCase):
 
     def mock_execute_query_posts(self, client, query):
@@ -198,6 +200,7 @@ class TestGetUserPosts(unittest.TestCase):
 
         self.assertEqual(posts, expected_posts)
 
+#used gemini for assistance: 
 class TestGetUserFriends(unittest.TestCase):
 
     def mock_execute_query_friends(self, client, query):

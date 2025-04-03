@@ -31,44 +31,7 @@ def display_my_custom_component(value):
     html_file_name = "my_custom_component"
     create_component(data, html_file_name)
 
-
-#used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
-'''def display_post(user_id, users_dict=users, get_posts_func=get_user_posts, streamlit_module=sl):
-
-    """
-    Description:
-        Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post
-    Input:
-        User(id): whoever is logged in
-    Output:
-        None: instead, shows the user's friends' posts as well as info on the page
-    """
-
-    if user_id not in users:
-        sl.error("User not found.")
-        return
-
-    user = users[user_id]
-    friends = user['friends']
-
-    streamlit_module.header("Friends' Posts")
-
-    for friend_id in friends:
-        if friend_id in users_dict:
-            friend = users_dict[friend_id]
-            posts = get_posts_func(friend_id)
-
-            streamlit_module.image(friend['profile_image'], width=100)
-            streamlit_module.subheader(f"{friend['full_name']} (@{friend['username']})")
-            for post in posts:
-                streamlit_module.write(f"**{post['content']}**")
-                streamlit_module.write(f"Posted on: {post['timestamp']}")
-                if post['image']:
-                    streamlit_module.image(post['image'], width=200)
-                streamlit_module.markdown("---")  # Separator between posts
-        else:
-            streamlit_module.warning(f"Friend ID '{friend_id}' not found.")'''
-
+#used gemini for assistance: 
 def display_post(user_id, query_db=bigquery, streamlit_module=sl):
     """
     Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post.
@@ -92,19 +55,6 @@ def display_post(user_id, query_db=bigquery, streamlit_module=sl):
                 streamlit_module.markdown("---")
         else:
             streamlit_module.warning(f"Friend ID '{friend_id}' not found.")
-
-# """
-# def main():
-#     sl.title("Social Media Feed")
-
-#     user_id = sl.selectbox("Select a User", list(users.keys()))
-
-#     if sl.button("Show Feed"):
-#         display_post(user_id)
-
-# if __name__ == "__main__":
-#     main()
-# """
 
 # display_activity_summary(fetcher=lambda: get_user_workouts(user_id)
 def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = dependency injection, this set up allows to pass hardcoded data still
