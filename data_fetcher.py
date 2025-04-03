@@ -138,7 +138,7 @@ def get_user_posts(user_id, query_db=bigquery, execute_query=None):
         FROM 
             `diegoperez16techx25.Committees.Posts` 
         WHERE 
-            AuthorId = '{user_id}'  # Corrected: filter by AuthorId
+            AuthorId = '{user_id}'
     """
 
     if execute_query is None:
@@ -165,7 +165,7 @@ def get_user_friends(user_id, query_db=bigquery, execute_query=None):
     client = query_db.Client()
     query = f"""
         SELECT 
-            friend_id  # Corrected: Select friend_id column
+            friend_id 
         FROM 
             `diegoperez16techx25.Committees.Friends` 
         WHERE 
@@ -179,7 +179,7 @@ def get_user_friends(user_id, query_db=bigquery, execute_query=None):
         execute_query = default_execute_query
 
     results = execute_query(client, query)
-    friends = [row[0] for row in results] # Corrected: Extract friend_id from results
+    friends = [row[0] for row in results]
     return friends
 
 def get_user_info(user_id, query_db=bigquery, execute_query=None):
@@ -193,7 +193,7 @@ def get_user_info(user_id, query_db=bigquery, execute_query=None):
         FROM 
             `diegoperez16techx25.Committees.Users` 
         WHERE 
-            UserId = '{user_id}' # Corrected: Use UserId instead of user_id
+            UserId = '{user_id}'
     """
 
     if execute_query is None:
@@ -206,7 +206,7 @@ def get_user_info(user_id, query_db=bigquery, execute_query=None):
     if results.total_rows > 0:
         row = next(iter(results))
         return {
-            'full_name': row[0],  # Corrected: Use Name instead of row[0]
+            'full_name': row[0],
             'username': row[1],
             'profile_image': row[2],
         }

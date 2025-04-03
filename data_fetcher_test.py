@@ -6,9 +6,10 @@
 # You will write these tests in Unit 3.
 #############################################################################
 import unittest
-from unittest.mock import patch, Mock
-from data_fetcher import get_user_workouts
+from unittest.mock import patch, Mock, call
+from data_fetcher import get_user_workouts, get_user_posts, get_user_friends, get_user_info
 from datetime import datetime
+from google.cloud import bigquery
 
 class TestDataFetcher(unittest.TestCase):
 
@@ -64,6 +65,180 @@ class TestDataFetcher(unittest.TestCase):
         self.assertTrue(workouts[0]['calories_burned'], 500.0)
 
         
+class TestGetUserFriends(unittest.TestCase):
+
+    def mock_execute_query_friends(self, client, query):
+        if "Friends" in query:
+            return [("friend1",), ("friend2",), ("friend3",)]
+        else:
+            return []  # Return empty if it's not the Friends query
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_friends_basic(self, mock_big_query_client):
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job  # Mock the query call
+
+        # Call get_user_friends with the custom execute_query function
+        friends = get_user_friends(
+            "user1",
+            execute_query=self.mock_execute_query_friends
+        )
+
+        expected_friends = ["friend1", "friend2", "friend3"]
+
+        self.assertEqual(friends, expected_friends)
+
+    def mock_execute_query_no_friends(self, client, query):
+        return []
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_friends_no_friends(self, mock_big_query_client):
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job
+
+        friends = get_user_friends(
+            "user2",
+            execute_query=self.mock_execute_query_no_friends
+        )
+
+        expected_friends = []
+
+        self.assertEqual(friends, expected_friends)
+    
+def get_user_posts(user_id, query_db=bigquery, execute_query=None):
+    """Returns a list of a user's posts from the BigQuery database."""
+    client = query_db.Client()
+    query = f"""
+        SELECT 
+            PostId,
+            AuthorId,
+            Timestamp,
+            ImageUrl,
+            Content
+        FROM 
+            `diegoperez16techx25.Committees.Posts` 
+        WHERE 
+            AuthorId = '{user_id}'
+    """
+
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+
+    results = execute_query(client, query)
+    posts = []
+    for row in results:
+        posts.append({
+            'post_id': row[0],
+            'user_id': row[1],
+            'timestamp': row[2].strftime('%Y-%m-%d %H:%M:%S'),
+            'image': row[3],
+            'content': row[4],
+        })
+    return posts
+
+class TestGetUserPosts(unittest.TestCase):
+
+    def mock_execute_query_posts(self, client, query):
+        if "Posts" in query:
+            return [
+                ("post1", "user1", datetime(2023, 11, 15, 12, 30, 0), "image1.jpg", "Hello world!"),
+                ("post2", "user1", datetime(2023, 11, 16, 14, 45, 0), "image2.jpg", "Another post."),
+            ]
+        else:
+            return []
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_posts_basic(self, mock_big_query_client):
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job
+
+        posts = get_user_posts("user1", execute_query=self.mock_execute_query_posts)
+
+        expected_posts = [
+            {
+                "post_id": "post1",
+                "user_id": "user1",
+                "timestamp": "2023-11-15 12:30:00",
+                "image": "image1.jpg",
+                "content": "Hello world!",
+            },
+            {
+                "post_id": "post2",
+                "user_id": "user1",
+                "timestamp": "2023-11-16 14:45:00",
+                "image": "image2.jpg",
+                "content": "Another post.",
+            },
+        ]
+
+        self.assertEqual(posts, expected_posts)
+
+    def mock_execute_query_no_posts(self, client, query):
+        return []
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_posts_no_posts(self, mock_big_query_client):
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job
+
+        posts = get_user_posts("user2", execute_query=self.mock_execute_query_no_posts)
+
+        expected_posts = []
+
+        self.assertEqual(posts, expected_posts)
+
+class TestGetUserFriends(unittest.TestCase):
+
+    def mock_execute_query_friends(self, client, query):
+        if "Friends" in query:
+            return [("friend1",), ("friend2",), ("friend3",)]
+        else:
+            return []
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_friends_basic(self, mock_big_query_client):
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job
+
+        friends = get_user_friends("user1", execute_query=self.mock_execute_query_friends)
+
+        expected_friends = ["friend1", "friend2", "friend3"]
+
+        self.assertEqual(friends, expected_friends)
+
+    def mock_execute_query_no_friends(self, client, query):
+        return []
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_friends_no_friends(self, mock_big_query_client):
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job
+
+        friends = get_user_friends("user2", execute_query=self.mock_execute_query_no_friends)
+
+        expected_friends = []
+
+        self.assertEqual(friends, expected_friends)
+
+
+
+
+    
 
 if __name__ == "__main__":
     unittest.main()
