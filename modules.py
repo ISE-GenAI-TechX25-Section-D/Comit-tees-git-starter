@@ -9,9 +9,10 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users
+from data_fetcher import get_user_workouts, get_user_posts, users, get_user_friends, get_user_info
 from PIL import Image
 import pandas as pd
+from google.cloud import bigquery
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
     """Displays a 'my custom component' which showcases an example of how custom
@@ -32,7 +33,7 @@ def display_my_custom_component(value):
 
 
 #used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
-def display_post(user_id, users_dict=users, get_posts_func=get_user_posts, streamlit_module=sl):
+'''def display_post(user_id, users_dict=users, get_posts_func=get_user_posts, streamlit_module=sl):
 
     """
     Description:
@@ -65,6 +66,30 @@ def display_post(user_id, users_dict=users, get_posts_func=get_user_posts, strea
                 if post['image']:
                     streamlit_module.image(post['image'], width=200)
                 streamlit_module.markdown("---")  # Separator between posts
+        else:
+            streamlit_module.warning(f"Friend ID '{friend_id}' not found.")'''
+
+def display_post(user_id, query_db=bigquery, streamlit_module=sl):
+    """
+    Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post.
+    """
+    friends = get_user_friends(user_id, query_db=query_db)
+
+    streamlit_module.header("Friends' Posts")
+
+    for friend_id in friends:
+        friend_info = get_user_info(friend_id, query_db=query_db)
+        if friend_info:
+            posts = get_user_posts(friend_id, query_db=query_db)
+
+            streamlit_module.image(friend_info['profile_image'], width=100)
+            streamlit_module.subheader(f"{friend_info['full_name']} (@{friend_info['username']})")
+            for post in posts:
+                streamlit_module.write(f"**{post['content']}**")
+                streamlit_module.write(f"Posted on: {post['timestamp']}")
+                if post['image']:
+                    streamlit_module.image(post['image'], width=200)
+                streamlit_module.markdown("---")
         else:
             streamlit_module.warning(f"Friend ID '{friend_id}' not found.")
 
