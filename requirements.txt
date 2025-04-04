@@ -3,3 +3,4 @@ pytest
 pandas
 google-cloud-bigquery==3.26.0
 datetime
+streamlit-option-menu
