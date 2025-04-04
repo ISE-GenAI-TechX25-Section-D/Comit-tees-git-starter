@@ -7,7 +7,9 @@
 #############################################################################
 import unittest
 from unittest.mock import patch, Mock
-from data_fetcher import get_user_workouts
+from google.cloud.bigquery import Row
+from google.api_core import exceptions as google_exceptions
+from data_fetcher import get_user_workouts, get_user_sensor_data
 from datetime import datetime
 
 class TestDataFetcher(unittest.TestCase):
@@ -62,6 +64,109 @@ class TestDataFetcher(unittest.TestCase):
         self.assertTrue(workouts[0]['distance'], 6.0)
         self.assertTrue(workouts[0]['steps'], 9000)
         self.assertTrue(workouts[0]['calories_burned'], 500.0)
+
+
+class TestGetUserSensorData(unittest.TestCase):
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_sensor_data_success(self, MockClient):
+        mock_client_instance = Mock()
+        mock_client_instance.query.side_effect = [
+            Mock(result=Mock(return_value=[1])),  # User exists
+            Mock(result=Mock(return_value=[1])),  # Workout exists and is mapped to user
+            Mock(result=Mock(return_value=[
+                Mock(SensorId='sensor_a', Timestamp=datetime(2025, 4, 3, 19, 15, 0), SensorValue=120.0),
+                Mock(SensorId='sensor_b', Timestamp=datetime(2025, 4, 3, 19, 30, 0), SensorValue=3000.0)
+            ])),
+            Mock(result=Mock(return_value=[
+                Mock(SensorId='sensor_a', Name='Heart Rate', Units='bpm'),
+                Mock(SensorId='sensor_b', Name='Step Count', Units='steps')
+            ]))
+        ]
+        MockClient.return_value = mock_client_instance
+        actual_data = get_user_sensor_data(MockClient(), "test_user", "test_workout")
+        expected_data = [
+            {'Timestamp': '2025-04-03 19:15:00', 'Data': 120.0, 'Sensor_type': 'Heart Rate', 'Units': 'bpm'},
+            {'Timestamp': '2025-04-03 19:30:00', 'Data': 3000.0, 'Sensor_type': 'Step Count', 'Units': 'steps'},
+        ]
+        self.assertEqual(actual_data, expected_data)
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_sensor_data_invalid_user_id(self, MockClient):
+        mock_client_instance = Mock()
+        mock_client_instance.query.return_value.result.return_value = [] 
+
+        MockClient.return_value = mock_client_instance
+
+        with self.assertRaises(ValueError) as context:
+            get_user_sensor_data(MockClient(), "invalid_user", "test_workout")
+
+        self.assertEqual(str(context.exception), "User ID 'invalid_user' not found.")
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_sensor_data_invalid_workout_id(self, MockClient):
+        mock_client_instance = Mock()
+        mock_client_instance.query.side_effect = [
+            Mock(result=Mock(return_value=[1])),  # User exists
+            Mock(result=Mock(return_value=[])),
+        ]
+        MockClient.return_value = mock_client_instance
+
+        with self.assertRaises(ValueError) as context:
+            get_user_sensor_data(MockClient(), "test_user", "invalid_workout")
+
+        self.assertEqual(str(context.exception), "Workout ID 'invalid_workout' not found or not associated with user ID 'test_user'.")
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_sensor_data_success_no_sensor_data(self, MockClient):
+        mock_client_instance = Mock()
+        mock_client_instance.query.side_effect = [
+            Mock(result=Mock(return_value=[1])),  # User exists
+            Mock(result=Mock(return_value=[1])),  # Workout exists
+            Mock(result=Mock(return_value=[])),  # No sensor data
+            Mock(result=Mock(return_value=[]))   # No sensor types (still called)
+        ]
+        MockClient.return_value = mock_client_instance
+
+        actual_data = get_user_sensor_data(MockClient(), "test_user", "test_workout")
+        expected_data = []
+        self.assertEqual(actual_data, expected_data)
+        
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_sensor_data_missing_sensor_types(self, MockClient):
+        mock_client_instance = Mock()
+        mock_client_instance.query.side_effect = [
+            Mock(result=Mock(return_value=[1])),  # User exists
+            Mock(result=Mock(return_value=[1])),
+            Mock(result=Mock(return_value=[
+                Mock(SensorId='sensor_a', Timestamp=datetime(2025, 4, 3, 19, 15, 0), SensorValue=120.0),
+            ])),
+            Mock(result=Mock(return_value=[]))
+        ]
+        MockClient.return_value = mock_client_instance
+
+        actual_data = get_user_sensor_data(MockClient(), "test_user", "test_workout")
+        expected_data = [{'Timestamp': '2025-04-03 19:15:00', 'Data': 120.0}]
+        self.assertEqual(actual_data, expected_data)
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_sensor_data_bigquery_error(self, MockClient):
+        mock_client_instance = Mock()
+        mock_client_instance.query.side_effect = google_exceptions.ServiceUnavailable("BigQuery service unavailable")
+        MockClient.return_value = mock_client_instance
+
+        with self.assertRaises(google_exceptions.ServiceUnavailable):
+            get_user_sensor_data(MockClient(), "test_user", "test_workout")
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_sensor_data_general_error(self, MockClient):
+        mock_client_instance = Mock()
+        mock_client_instance.query.side_effect = Exception("General Exception")
+        MockClient.return_value = mock_client_instance
+
+        actual_data = get_user_sensor_data(MockClient(), "test_user", "test_workout")
+
+        self.assertEqual(actual_data, [])
 
         
 
