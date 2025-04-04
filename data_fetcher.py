@@ -10,6 +10,7 @@
 
 import random
 from google.cloud import bigquery
+from google.api_core import exceptions as google_exceptions
 from datetime import datetime
 
 users = {
@@ -44,7 +45,7 @@ users = {
 }
 
 
-def get_user_sensor_data(user_id, workout_id):
+def get_user_sensor_data(client: bigquery.Client, user_id: str, workout_id: str):
     """Returns a list of timestampped information for a given workout.
 
     This function currently returns random data. You will re-write it in Unit 3.
@@ -54,37 +55,62 @@ def get_user_sensor_data(user_id, workout_id):
         FROM `diegoperez16techx25`.`Committees`.`SensorData`
         WHERE WorkoutID = '{workout_id}'
     """
-    client = bigquery.Client()
-    query = client.query(query_prompt)
-    results = query.result()  # Waits for query to finish
-
     sensor_data_dictionaries = []
-    for row in results:
-        sensor_data_dictionaries.append({
-            'SensorId': row.SensorId,
-            'Timestamp': row.Timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'Data': row.SensorValue,
-        })
+    try:
+        # 1. Check if user_id exists
+        user_check_query = f"""
+            SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Users`
+            WHERE UserId = '{user_id}'
+        """
+        user_check_result = client.query(user_check_query).result()
+        if not list(user_check_result):
+            raise ValueError(f"User ID '{user_id}' not found.")
 
-    sensor_ids = [item['SensorId'] for item in sensor_data_dictionaries]
-    sensor_types_query = f"""
-        SELECT SensorId, Name, Units
-        FROM `diegoperez16techx25`.`Committees`.`SensorTypes`
-        WHERE SensorId IN UNNEST({sensor_ids})
-    """
-    sensor_types_results = client.query(sensor_types_query).result()
+        # 2. Check if workout_id exists and is associated with user_id
+        workout_check_query = f"""
+            SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Workouts`
+            WHERE WorkoutId = '{workout_id}' AND UserId = '{user_id}'
+        """
+        workout_check_result = client.query(workout_check_query).result()
+        if not list(workout_check_result):
+            raise ValueError(f"Workout ID '{workout_id}' not found or not associated with user ID '{user_id}'.")
 
-    # 3. Create a Sensor Type Map
-    sensor_types_map = {row.SensorId: {'Sensor_type': row.Name, 'Units': row.Units} for row in sensor_types_results}
+        query = client.query(query_prompt)
+        results = query.result()  # Waits for query to finish
 
-    # 4. Combine Data
-    for item in sensor_data_dictionaries:
-        sensor_id = item['SensorId']
-        if sensor_id in sensor_types_map:
-            item.update(sensor_types_map[sensor_id])
-        item.pop('SensorId')
+        for row in results:
+            sensor_data_dictionaries.append({
+                'SensorId': row.SensorId,
+                'Timestamp': row.Timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'Data': row.SensorValue,
+            })
+        if sensor_data_dictionaries:
+            sensor_ids = [item['SensorId'] for item in sensor_data_dictionaries]
+            sensor_types_query = f"""
+                SELECT SensorId, Name, Units
+                FROM `diegoperez16techx25`.`Committees`.`SensorTypes`
+                WHERE SensorId IN UNNEST({sensor_ids})
+            """
+            sensor_types_results = client.query(sensor_types_query).result()
 
-    return sensor_data_dictionaries
+            # 3. Create a Sensor Type Map
+            sensor_types_map = {row.SensorId: {'Sensor_type': row.Name, 'Units': row.Units} for row in sensor_types_results}
+
+            # 4. Combine Data
+            for item in sensor_data_dictionaries:
+                sensor_id = item['SensorId']
+                if sensor_id in sensor_types_map:
+                    item.update(sensor_types_map[sensor_id])
+                item.pop('SensorId')
+
+        return sensor_data_dictionaries
+    except google_exceptions.GoogleAPIError as e:
+        raise  # Re-raise the BigQuery API error
+    except ValueError as e:
+        raise # Re-raise the value errors.
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return []  # Return an empty list for other unexpected errors
     
 
 
@@ -164,6 +190,4 @@ def get_genai_advice(user_id):
         'content': advice,
         'image': image,
     }
-res = get_user_sensor_data('user1', 'workout1')
-for val in res:
-    print(val)
+
