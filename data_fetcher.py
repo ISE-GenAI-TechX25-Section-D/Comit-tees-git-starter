@@ -49,25 +49,43 @@ def get_user_sensor_data(user_id, workout_id):
 
     This function currently returns random data. You will re-write it in Unit 3.
     """
-    sensor_data = []
-    sensor_types = [
-        'accelerometer',
-        'gyroscope',
-        'pressure',
-        'temperature',
-        'heart_rate',
-    ]
-    for index in range(random.randint(5, 100)):
-        random_minute = str(random.randint(0, 59))
-        if len(random_minute) == 1:
-            random_minute = '0' + random_minute
-        timestamp = '2024-01-01 00:' + random_minute + ':00'
-        data = random.random() * 100
-        sensor_type = random.choice(sensor_types)
-        sensor_data.append(
-            {'sensor_type': sensor_type, 'timestamp': timestamp, 'data': data}
-        )
-    return sensor_data
+    query_prompt = f"""
+        SELECT SensorId, Timestamp, SensorValue
+        FROM `diegoperez16techx25`.`Committees`.`SensorData`
+        WHERE WorkoutID = '{workout_id}'
+    """
+    client = bigquery.Client()
+    query = client.query(query_prompt)
+    results = query.result()  # Waits for query to finish
+
+    sensor_data_dictionaries = []
+    for row in results:
+        sensor_data_dictionaries.append({
+            'SensorId': row.SensorId,
+            'Timestamp': row.Timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'Data': row.SensorValue,
+        })
+
+    sensor_ids = [item['SensorId'] for item in sensor_data_dictionaries]
+    sensor_types_query = f"""
+        SELECT SensorId, Name, Units
+        FROM `diegoperez16techx25`.`Committees`.`SensorTypes`
+        WHERE SensorId IN UNNEST({sensor_ids})
+    """
+    sensor_types_results = client.query(sensor_types_query).result()
+
+    # 3. Create a Sensor Type Map
+    sensor_types_map = {row.SensorId: {'Sensor_type': row.Name, 'Units': row.Units} for row in sensor_types_results}
+
+    # 4. Combine Data
+    for item in sensor_data_dictionaries:
+        sensor_id = item['SensorId']
+        if sensor_id in sensor_types_map:
+            item.update(sensor_types_map[sensor_id])
+        item.pop('SensorId')
+
+    return sensor_data_dictionaries
+    
 
 
 def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
@@ -146,3 +164,6 @@ def get_genai_advice(user_id):
         'content': advice,
         'image': image,
     }
+res = get_user_sensor_data('user1', 'workout1')
+for val in res:
+    print(val)
