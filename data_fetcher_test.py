@@ -6,11 +6,18 @@
 # You will write these tests in Unit 3.
 #############################################################################
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
+import json
 from google.cloud.bigquery import Row
+from google.cloud import exceptions as google_exceptions
 from google.api_core import exceptions as google_exceptions
-from data_fetcher import get_user_workouts, get_user_sensor_data
+from data_fetcher import get_user_workouts, get_user_sensor_data, get_genai_advice
 from datetime import datetime
+from google.cloud import bigquery
+
+import vertexai
+from vertexai.generative_models import GenerativeModel, GenerationConfig
+from vertexai.vision_models import Image, ImageGenerationModel
 
 class TestDataFetcher(unittest.TestCase):
 
@@ -168,7 +175,208 @@ class TestGetUserSensorData(unittest.TestCase):
 
         self.assertEqual(actual_data, [])
 
+class TestGetGenaiAdvice(unittest.TestCase):  
+    @patch('google.cloud.bigquery.Client')
+    @patch('vertexai.generative_models.GenerativeModel')
+    @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained')
+    def test_get_genai_advice_success(self, mock_image_model, mock_text_model, mock_client):
+        # Setup BigQuery client mock
+        mock_client_instance = Mock()
+        mock_client_instance.query.return_value.result.return_value = [1]  # User exists
+        mock_client.return_value = mock_client_instance
         
+        # Setup workouts provider mock
+        mock_workouts = [
+            {"date": "2025-04-01", "exercise": "Running", "duration": 30},
+            {"date": "2025-04-03", "exercise": "Weight training", "duration": 45}
+        ]
+        mock_workouts_provider = Mock(return_value=mock_workouts)
+        
+        # Setup text model mock
+        mock_text_instance = Mock()
+        mock_response = Mock()
+        mock_response.text = json.dumps({"adviceid": "advice123", "advice": "Mix cardio with strength training for better results."})
+        mock_text_instance.generate_content.return_value = mock_response
+        mock_text_model.return_value = mock_text_instance
+        
+        # Setup image model mock
+        mock_image_instance = Mock()
+        mock_image = Mock()
+        mock_image.save = Mock()
+        mock_image_response = Mock()
+        mock_image_response.images = [mock_image]
+        mock_image_instance.generate_images.return_value = mock_image_response
+        mock_image_model.return_value = mock_image_instance
+        
+        # Set fixed timestamp for testing
+        test_timestamp = datetime(2025, 4, 5, 12, 0, 0)
+        
+        # Call the function
+        result = get_genai_advice(
+            user_id="test_user",
+            client=mock_client_instance,
+            text_model=mock_text_instance,
+            image_model=mock_image_instance,
+            workouts_provider=mock_workouts_provider,
+            timestamp=test_timestamp
+        )
+        
+        # Assertions
+        self.assertEqual(result['advice_id'], "advice123")
+        self.assertEqual(result['content'], "Mix cardio with strength training for better results.")
+        self.assertTrue(result['image'].startswith("motivation_"))  # Just check the prefix
+        self.assertTrue(result['image'].endswith(".png"))  # Just check the suffix
+        self.assertEqual(result['timestamp'], "2025-04-05 12:00:00")
+        
+        # Verify the image was saved with the same filename that's returned
+        mock_image.save.assert_called_once_with(result['image'])
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_genai_advice_user_not_found(self, mock_client):
+        # Setup BigQuery client mock to return empty result (user not found)
+        mock_client_instance = Mock()
+        mock_client_instance.query.return_value.result.return_value = []
+        mock_client.return_value = mock_client_instance
+        
+        # Call the function and check for exception
+        with self.assertRaises(ValueError) as context:
+            get_genai_advice(user_id="nonexistent_user", client=mock_client_instance)
+            
+        self.assertEqual(str(context.exception), "User ID 'nonexistent_user' not found.")
+
+    @patch('google.cloud.bigquery.Client')
+    @patch('vertexai.generative_models.GenerativeModel')
+    @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained')      
+    def test_get_genai_advice_no_workouts(self, mock_image_model, mock_text_model, mock_client):
+        # Setup BigQuery client mock
+        mock_client_instance = Mock()
+        mock_client_instance.query.return_value.result.return_value = [1]  # User exists
+        mock_client.return_value = mock_client_instance
+        
+        # Setup workouts provider to return empty list
+        mock_workouts_provider = Mock(return_value=[])
+        
+        # Setup text model mock
+        mock_text_instance = Mock()
+        mock_response = Mock()
+        mock_response.text = json.dumps({"adviceid": "advice123", "advice": "Start with light exercises to build a habit."})
+        mock_text_instance.generate_content.return_value = mock_response
+        mock_text_model.return_value = mock_text_instance
+        
+        # Setup image model mock
+        mock_image_instance = Mock()
+        mock_image = Mock()
+        mock_image.save = Mock()
+        mock_image_response = Mock()
+        mock_image_response.images = [mock_image]
+        mock_image_instance.generate_images.return_value = mock_image_response
+        mock_image_model.return_value = mock_image_instance
+        
+        # Call the function
+        result = get_genai_advice(
+            user_id="test_user",
+            client=mock_client_instance,
+            text_model=mock_text_instance,
+            image_model=mock_image_instance,
+            workouts_provider=mock_workouts_provider
+        )
+        
+        # Verify the prompt mentions no workouts
+        prompt_arg = mock_text_instance.generate_content.call_args[0][0]
+        self.assertIn("no recorded workouts", prompt_arg)
+        
+        # Validate results
+        self.assertEqual(result['advice_id'], "advice123")
+        self.assertEqual(result['content'], "Start with light exercises to build a habit.")
+
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_genai_advice_workouts_provider_exception(self, mock_client):
+        # Setup BigQuery client mock
+        mock_client_instance = Mock()
+        mock_client_instance.query.return_value.result.return_value = [1]  # User exists
+        mock_client.return_value = mock_client_instance
+        
+        # Setup workouts provider to raise exception
+        def workouts_error(user_id):
+            raise Exception("Failed to retrieve workouts")
+        
+        # Call the function
+        result = get_genai_advice(
+            user_id="test_user",
+            client=mock_client_instance,
+            workouts_provider=workouts_error
+        )
+        
+        # Verify function gracefully handles the error
+        self.assertIsNone(result)
+    
+    @patch('google.cloud.bigquery.Client')
+    @patch('vertexai.generative_models.GenerativeModel')
+    @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained') 
+    def test_get_genai_advice_text_model_exception(self, mock_image_model, mock_text_model, mock_client):
+        # Setup BigQuery client mock
+        mock_client_instance = Mock()
+        mock_client_instance.query.return_value.result.return_value = [1]  # User exists
+        mock_client.return_value = mock_client_instance
+        
+        # Setup workouts provider
+        mock_workouts = [{"date": "2025-04-01", "exercise": "Running", "duration": 30}]
+        mock_workouts_provider = Mock(return_value=mock_workouts)
+        
+        # Setup text model to raise exception
+        mock_text_instance = Mock()
+        mock_text_instance.generate_content.side_effect = Exception("Text model failed")
+        mock_text_model.return_value = mock_text_instance
+        
+        # Call the function
+        result = get_genai_advice(
+            user_id="test_user",
+            client=mock_client_instance,
+            text_model=mock_text_instance,
+            workouts_provider=mock_workouts_provider
+        )
+        
+        # Verify function gracefully handles the error
+        self.assertIsNone(result)
+    @patch('google.cloud.bigquery.Client')
+    @patch('vertexai.generative_models.GenerativeModel')
+    @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained')
+    def test_get_genai_advice_image_model_exception(self, mock_image_model, mock_text_model, mock_client):
+        # Setup BigQuery client mock
+        mock_client_instance = Mock()
+        mock_client_instance.query.return_value.result.return_value = [1]  # User exists
+        mock_client.return_value = mock_client_instance
+        
+        # Setup workouts provider
+        mock_workouts = [{"date": "2025-04-01", "exercise": "Running", "duration": 30}]
+        mock_workouts_provider = Mock(return_value=mock_workouts)
+        
+        # Setup text model mock
+        mock_text_instance = Mock()
+        mock_response = Mock()
+        mock_response.text = json.dumps({"adviceid": "advice123", "advice": "Run more consistently"})
+        mock_text_instance.generate_content.return_value = mock_response
+        mock_text_model.return_value = mock_text_instance
+        
+        # Setup image model to raise exception
+        mock_image_instance = Mock()
+        mock_image_instance.generate_images.side_effect = Exception("Image generation failed")
+        mock_image_model.return_value = mock_image_instance
+        
+        # Call the function
+        result = get_genai_advice(
+            user_id="test_user",
+            client=mock_client_instance,
+            text_model=mock_text_instance,
+            image_model=mock_image_instance,
+            workouts_provider=mock_workouts_provider
+        )
+        
+        # Verify advice is still returned but image is None
+        self.assertEqual(result['advice_id'], "advice123")
+        self.assertEqual(result['content'], "Run more consistently")
+        self.assertIsNone(result['image'])
 
 if __name__ == "__main__":
     unittest.main()
