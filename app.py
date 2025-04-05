@@ -30,25 +30,26 @@ def display_app_page():
 
     if selected == "Home":
         sl.title("🏠 Home Page")
-        sl.subheader(f'Welcome {user_name} to MyFitness!')
+        sl.subheader(f"Welcome {user_profile['full_name']} to MyFitness!")
+
+        # Profile Card
+        sl.image(user_profile['profile_image'], width=150, caption="Your Profile Picture")
+
+        sl.markdown(f"**Username:** {user_profile['username']}")
+        sl.markdown(f"**Date of Birth:** {user_profile['date_of_birth']}")
+
+        # Friends section
+        sl.markdown("### 👯 Your Friends")
+        if user_profile['friends']:
+            for friend_id in user_profile['friends']:
+                sl.markdown(f"- {friend_id}")
+        else:
+            sl.info("You don't have any friends yet!")
 
     elif selected == "Activities":
         display(user_id=userId)
         
 
-    # posts, recent_workouts, activity_summary, genai_advice = st.tabs(["Posts", "Recent Workouts", "Activity Summary", "GenAI Advice"])
-
-    # with posts:
-    #     display_post(userId)
-    # with recent_workouts:
-    #     display_recent_workouts(userId)
-    # with activity_summary:
-    #     display_activity_summary(fetcher=lambda:get_user_workouts(userId)) # Using dependency injection
-    # with genai_advice:
-    #     display_genai_advice(get_genai_advice(userId)['timestamp'],get_genai_advice(userId)['content'],get_genai_advice(userId)['image'] )
-
-    # page .radio("Navigate:", ["Home", "Activities"])
-        
 # This is the starting point for your app. You do not need to change these lines
 if __name__ == '__main__':
     display_app_page()

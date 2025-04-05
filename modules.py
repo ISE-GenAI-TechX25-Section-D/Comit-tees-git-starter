@@ -116,6 +116,10 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
         total_distance += workout['distance']
         total_steps += workout['steps']
         total_calories += workout['calories_burned']
+    
+    sl.session_state.total_distance = total_distance
+    sl.session_state.total_steps = total_steps
+    sl.session_state.total_calories = total_calories
 
     
     # Displaying summary statistics
@@ -128,7 +132,15 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     sl.subheader("Workout Details")
     df = pd.DataFrame(workouts)
     # Line written by ChatGPT
-    sl.dataframe(df[["start_timestamp", "end_timestamp", "distance", "steps", "calories_burned"]])
+    df_display = df[["distance", "steps", "calories_burned"]].rename(columns={
+    "distance": "Distance (mi)",
+    "steps": "Steps Taken",
+    "calories_burned": "Calories Burned"
+    })
+
+    df_display.index = df_display.index + 1
+
+    sl.dataframe(df_display)
     # Line written by ChatGPT
     
     # Weekly Calorie Progress
