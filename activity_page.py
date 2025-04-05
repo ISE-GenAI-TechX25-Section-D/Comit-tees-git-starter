@@ -74,7 +74,7 @@ def share_specific_workout(user_id,recent_workouts):
         return
 
     workout_options = {
-        f"{w['start_timestamp']} | {w['distance']} mi | {w['calories_burned']} cal": w
+        f"{ w['workout_id']} - ( { w['start_timestamp']} | {w['distance']} mi | {w['calories_burned']} cal )": w
         for w in reversed(recent_workouts)
     }
     selected_label = sl.selectbox("Choose a workout:", list(workout_options.keys()))
