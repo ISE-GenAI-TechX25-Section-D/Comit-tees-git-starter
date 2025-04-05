@@ -98,14 +98,50 @@ def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
     return workouts
 
 #used gemini for assistance: 
-def get_user_profile(user_id):
+def get_user_profile(user_id, query_db=bigquery, execute_query=None):
     """Returns information about the given user.
 
     This function currently returns random data. You will re-write it in Unit 3.
     """
-    if user_id not in users:
-        raise ValueError(f'User {user_id} not found.')
-    return users[user_id]
+
+    client = query_db.Client()
+
+    # Step 1: Get user info from the Users table
+    query = f"""
+        SELECT 
+            Name,
+            Username,
+            ImageUrl,
+            DateOfBirth
+        FROM 
+            `diegoperez16techx25.Committees.Users` 
+        WHERE 
+            UserId = '{user_id}'
+    """
+
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+
+    results = execute_query(client, query)
+    if results.total_rows == 0:
+        raise ValueError(f"User {user_id} not found.")
+
+    row = list(results)[0]
+
+    # Step 2: Get the user's friends
+    friends = get_user_friends(user_id)
+
+    # Step 3: Return nicely structured profile data
+    return {
+        "full_name": row[0],
+        "username": row[1],
+        "profile_image": row[2],
+        "date_of_birth": row[3].strftime('%Y-%m-%d') if row[3] else None,
+        "friends": friends
+    }
 
 #used gemini for assistance: 
 def get_user_posts(user_id, query_db=bigquery, execute_query=None):
