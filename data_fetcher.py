@@ -150,7 +150,7 @@ def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
         })
     return workouts
 
-
+#used gemini for assistance: 
 def get_user_profile(user_id):
     """Returns information about the given user.
 
@@ -160,23 +160,95 @@ def get_user_profile(user_id):
         raise ValueError(f'User {user_id} not found.')
     return users[user_id]
 
-
-def get_user_posts(user_id):
-    """Returns a list of a user's posts.
-
-    This function currently returns random data. You will re-write it in Unit 3.
+#used gemini for assistance: 
+def get_user_posts(user_id, query_db=bigquery, execute_query=None):
+    """Returns a list of a user's posts from the BigQuery database."""
+    client = query_db.Client()
+    query = f"""
+        SELECT 
+            PostId,
+            AuthorId,
+            Timestamp,
+            ImageUrl,
+            Content
+        FROM 
+            `diegoperez16techx25.Committees.Posts` 
+        WHERE 
+            AuthorId = '{user_id}'
     """
-    content = random.choice([
-        'Had a great workout today!',
-        'The AI really motivated me to push myself further, I ran 10 miles!',
-    ])
-    return [{
-        'user_id': user_id,
-        'post_id': 'post1',
-        'timestamp': '2024-01-01 00:00:00',
-        'content': content,
-        'image': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSz0kSuHwimKiIaNdUXwlaLMlkmnTXVC36Qkg&s',
-    }]
+
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+
+    results = execute_query(client, query)
+    posts = []
+    for row in results:
+        posts.append({
+            'post_id': row[0],
+            'user_id': row[1],
+            'timestamp': row[2].strftime('%Y-%m-%d %H:%M:%S'),
+            'image': row[3],
+            'content': row[4],
+        })
+    return posts
+
+#used gemini for assistance: 
+def get_user_friends(user_id, query_db=bigquery, execute_query=None):
+    """Returns a list of a user's friends from the BigQuery database."""
+    client = query_db.Client()
+    query = f"""
+        SELECT 
+            friend_id 
+        FROM 
+            `diegoperez16techx25.Committees.Friends` 
+        WHERE 
+            user_id = '{user_id}'
+    """
+
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+
+    results = execute_query(client, query)
+    friends = [row[0] for row in results]
+    return friends
+
+def get_user_info(user_id, query_db=bigquery, execute_query=None):
+    """Returns a user's profile information from the BigQuery database."""
+    client = query_db.Client()
+    query = f"""
+        SELECT 
+            Name,
+            Username,
+            ImageUrl
+        FROM 
+            `diegoperez16techx25.Committees.Users` 
+        WHERE 
+            UserId = '{user_id}'
+    """
+
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+
+    results = execute_query(client, query)
+    if results.total_rows > 0:
+        row = next(iter(results))
+        return {
+            'full_name': row[0],
+            'username': row[1],
+            'profile_image': row[2],
+        }
+    else:
+        return None
+
 
 def get_genai_advice(
     user_id: str,
