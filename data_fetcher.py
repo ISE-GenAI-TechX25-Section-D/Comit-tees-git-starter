@@ -142,6 +142,44 @@ def get_user_posts(user_id, query_db=bigquery, execute_query=None):
         })
     return posts
 
+def insert_user_post(user_id, content, image_url=None, query_db=bigquery, execute_query=None):
+    """Inserts a new post into the Posts table in BigQuery for the given user, with custom post ID format like 'post4'."""
+    client = query_db.Client()
+
+    get_max_query = """
+        SELECT MAX(CAST(SUBSTR(PostId, 5) AS INT64)) as max_id
+        FROM `diegoperez16techx25.Committees.Posts`
+        WHERE SAFE_CAST(SUBSTR(PostId, 5) AS INT64) IS NOT NULL
+    """
+    query_job = client.query(get_max_query)
+    max_id_row = list(query_job.result())[0]
+    max_id = max_id_row[0] or 0
+    new_id = f"post{max_id + 1}"
+
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    content_escaped = content.replace("'", "''") 
+    image_url = image_url or ''
+    insert_query = f"""
+        INSERT INTO `diegoperez16techx25.Committees.Posts`
+        (PostId, AuthorId, Timestamp, ImageUrl, Content)
+        VALUES (
+            '{new_id}',
+            '{user_id}',
+            '{timestamp}',
+            '{image_url}',
+            '{content_escaped}'
+        )
+    """
+
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+
+    execute_query(client, insert_query)
+
 #used gemini for assistance: 
 def get_user_friends(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of a user's friends from the BigQuery database."""
