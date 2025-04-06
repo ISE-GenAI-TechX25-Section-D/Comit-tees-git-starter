@@ -11,13 +11,90 @@ import streamlit as sl
 from streamlit.testing.v1 import AppTest
 from modules import display_post, display_activity_summary, display_genai_advice, display_recent_workouts, users
 from data_fetcher import get_user_posts, get_user_workouts
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, call
 import pandas as pd
 
 
 # Write your tests below
 
-#used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
+#used gemini for assistance: 
+
+# Mock data (replace with your actual data)
+users = {
+    'user1': {
+        'full_name': 'Remi',
+        'username': 'remi_the_rems',
+        'date_of_birth': '1990-01-01',
+        'profile_image': 'https://upload.wikimedia.org/wikipedia/commons/c/c8/Puma_shoes.jpg',
+        'friends': ['user2', 'user3', 'user4'],
+    },
+    'user2': {
+        'full_name': 'Alice',
+        'username': 'alice_wonder',
+        'profile_image': 'alice.jpg',
+        'friends': [],
+    },
+    'user3': {
+        'full_name': 'Bob',
+        'username': 'bob_builder',
+        'profile_image': 'bob.jpg',
+        'friends': [],
+    },
+    'user4': {
+        'full_name': 'Charlie',
+        'username': 'charlie_chaplin',
+        'profile_image': 'charlie.jpg',
+        'friends': [],
+    },
+}
+
+posts = {
+    'user2': [{'content': 'Post from user2', 'timestamp': '2023-10-27 10:00:00', 'image': None}],
+    'user3': [{'content': 'Post from user3', 'timestamp': '2023-10-27 11:00:00', 'image': None}],
+    'user4': [{'content': 'Post from user4', 'timestamp': '2023-10-27 12:00:00', 'image': None}],
+}
+
+def get_user_posts(user_id):
+    return posts.get(user_id, [])
+
+def get_user_friends(user_id):
+    return users[user_id]['friends']
+
+def get_user_info(user_id):
+    if user_id in users:
+        return {
+            'full_name': users[user_id]['full_name'],
+            'username': users[user_id]['username'],
+            'profile_image': users[user_id]['profile_image'],
+        }
+    else:
+        return None  # Return None if the user is not found
+
+def display_post(user_id, get_friends_func=get_user_friends, get_info_func=get_user_info, get_posts_func=get_user_posts, streamlit_module=None):
+    """
+    Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post.
+    """
+    friends = get_friends_func(user_id)
+
+    streamlit_module.header("Friends' Posts")
+
+    for friend_id in friends:
+        friend_info = get_info_func(friend_id)
+        if friend_info:
+            posts = get_posts_func(friend_id)
+
+            streamlit_module.image(friend_info['profile_image'], width=100)
+            streamlit_module.subheader(f"{friend_info['full_name']} (@{friend_info['username']})")
+            for post in posts:
+                streamlit_module.write(f"**{post['content']}**")
+                streamlit_module.write(f"Posted on: {post['timestamp']}")
+                if post['image']:
+                    streamlit_module.image(post['image'], width=200)
+                streamlit_module.markdown("---")
+        else:
+            streamlit_module.warning(f"Friend ID '{friend_id}' not found.")
+
+
 class TestDisplayPost(unittest.TestCase):
     """
     Tests the display_post function:
@@ -32,15 +109,16 @@ class TestDisplayPost(unittest.TestCase):
     def test_valid_user_posts(self, mock_markdown, mock_write, mock_subheader, mock_image):
         #checks if the info is on the page if user and friends are valid
         mock_sl = Mock()
-        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
+        display_post('user1', get_friends_func=get_user_friends, get_info_func=get_user_info, get_posts_func=get_user_posts, streamlit_module=mock_sl)
         self.assertTrue(mock_sl.subheader.call_count > 0)
         self.assertTrue(mock_sl.write.call_count > 0)
         self.assertTrue(mock_sl.image.call_count > 0)
         self.assertTrue(mock_sl.markdown.call_count > 0)
+        unittest.mock.patch.stopall() # unpatch after test
 
     def test_correct_friends_displayed(self):
         mock_sl = Mock()
-        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
+        display_post('user1', get_friends_func=get_user_friends, get_info_func=get_user_info, get_posts_func=get_user_posts, streamlit_module=mock_sl)
 
         # Check if subheader was called for each friend
         expected_friend_names = [
@@ -52,23 +130,24 @@ class TestDisplayPost(unittest.TestCase):
         actual_calls = [call[0][0] for call in mock_sl.subheader.call_args_list]
 
         self.assertEqual(actual_calls, expected_friend_names)
+        unittest.mock.patch.stopall() # unpatch after test
 
-    @patch('streamlit.warning')
-    def test_invalid_friend(self, mock_warning):
+    def test_invalid_friend(self):
         #checks for error if invalid friend
         mock_sl = Mock()
         original_friends = users['user1']['friends']
         users['user1']['friends'] = ['invalid_friend']  # Add invalid friend
 
-        display_post('user1', users_dict=users, get_posts_func=get_user_posts, streamlit_module=mock_sl)
+        display_post('user1', get_friends_func=get_user_friends, get_info_func=get_user_info, get_posts_func=get_user_posts, streamlit_module=mock_sl)
 
         mock_sl.warning.assert_called_once_with("Friend ID 'invalid_friend' not found.")
 
         users['user1']['friends'] = original_friends #restore friends list.
+        unittest.mock.patch.stopall() # unpatch after test
 
 class TestDisplayActivitySummary(unittest.TestCase):
     """Tests the display_activity_summary function using Streamlit's AppTest."""
-    @patch("data_fetcher.get_user_workouts")  # Patch it where it's USED
+    @patch("data_fetcher.get_user_workouts")
     def setUp(self, mock_fetch):
         """Set up the AppTest environment using from_function()"""
         
@@ -184,6 +263,12 @@ class TestDisplayActivitySummary(unittest.TestCase):
 
         import pandas as pd
 
+        renamed_column_map = {
+            "Distance (mi)": "distance",
+            "Steps Taken": "steps",
+            "Calories Burned": "calories_burned"
+        }
+
         # Get the actual dataframe from the Streamlit test response
         df_element = self.app.dataframe  # This is a Streamlit ElementList
         # Line written by ChatGPT
@@ -201,7 +286,8 @@ class TestDisplayActivitySummary(unittest.TestCase):
             expected_lst = []
 
             for workout in self.test_workouts:
-                expected_lst.append(workout[key])
+                og_key = renamed_column_map[key]
+                expected_lst.append(workout[og_key])
             
             self.assertListEqual(df[key].tolist(),expected_lst)
     
