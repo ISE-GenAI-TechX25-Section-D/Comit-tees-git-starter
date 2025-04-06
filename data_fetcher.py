@@ -10,7 +10,19 @@
 
 import random
 from google.cloud import bigquery
+from google.api_core import exceptions as google_exceptions
 from datetime import datetime
+import os
+import uuid
+import json
+
+import vertexai
+from vertexai.generative_models import GenerativeModel, GenerationConfig
+from vertexai.vision_models import Image, ImageGenerationModel
+from dotenv import load_dotenv
+load_dotenv()
+vertexai.init(project=os.environ.get("diegoperez16techx25"), location="us-central1")
+
 
 users = {
     'user1': {
@@ -44,30 +56,71 @@ users = {
 }
 
 
-def get_user_sensor_data(user_id, workout_id):
+def get_user_sensor_data(client: bigquery.Client, user_id: str, workout_id: str):
     """Returns a list of timestampped information for a given workout.
-
-    This function currently returns random data. You will re-write it in Unit 3.
     """
-    sensor_data = []
-    sensor_types = [
-        'accelerometer',
-        'gyroscope',
-        'pressure',
-        'temperature',
-        'heart_rate',
-    ]
-    for index in range(random.randint(5, 100)):
-        random_minute = str(random.randint(0, 59))
-        if len(random_minute) == 1:
-            random_minute = '0' + random_minute
-        timestamp = '2024-01-01 00:' + random_minute + ':00'
-        data = random.random() * 100
-        sensor_type = random.choice(sensor_types)
-        sensor_data.append(
-            {'sensor_type': sensor_type, 'timestamp': timestamp, 'data': data}
-        )
-    return sensor_data
+    query_prompt = f"""
+        SELECT SensorId, Timestamp, SensorValue
+        FROM `diegoperez16techx25`.`Committees`.`SensorData`
+        WHERE WorkoutID = '{workout_id}'
+    """
+    sensor_data_dictionaries = []
+    try:
+        # 1. Check if user_id exists
+        user_check_query = f"""
+            SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Users`
+            WHERE UserId = '{user_id}'
+        """
+        user_check_result = client.query(user_check_query).result()
+        if not list(user_check_result):
+            raise ValueError(f"User ID '{user_id}' not found.")
+
+        # 2. Check if workout_id exists and is associated with user_id
+        workout_check_query = f"""
+            SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Workouts`
+            WHERE WorkoutId = '{workout_id}' AND UserId = '{user_id}'
+        """
+        workout_check_result = client.query(workout_check_query).result()
+        if not list(workout_check_result):
+            raise ValueError(f"Workout ID '{workout_id}' not found or not associated with user ID '{user_id}'.")
+
+        query = client.query(query_prompt)
+        results = query.result()  # Waits for query to finish
+
+        for row in results:
+            sensor_data_dictionaries.append({
+                'SensorId': row.SensorId,
+                'Timestamp': row.Timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'Data': row.SensorValue,
+            })
+        if sensor_data_dictionaries:
+            sensor_ids = [item['SensorId'] for item in sensor_data_dictionaries]
+            sensor_types_query = f"""
+                SELECT SensorId, Name, Units
+                FROM `diegoperez16techx25`.`Committees`.`SensorTypes`
+                WHERE SensorId IN UNNEST({sensor_ids})
+            """
+            sensor_types_results = client.query(sensor_types_query).result()
+
+            # 3. Create a Sensor Type Map
+            sensor_types_map = {row.SensorId: {'Sensor_type': row.Name, 'Units': row.Units} for row in sensor_types_results}
+
+            # 4. Combine Data
+            for item in sensor_data_dictionaries:
+                sensor_id = item['SensorId']
+                if sensor_id in sensor_types_map:
+                    item.update(sensor_types_map[sensor_id])
+                item.pop('SensorId')
+
+        return sensor_data_dictionaries
+    except google_exceptions.GoogleAPIError as e:
+        raise  # Re-raise the BigQuery API error
+    except ValueError as e:
+        raise # Re-raise the value errors.
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return []  # Return an empty list for other unexpected errors
+    
 
 
 def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
@@ -271,24 +324,119 @@ def get_user_info(user_id, query_db=bigquery, execute_query=None):
         return None
 
 
+def get_genai_advice(
+   user_id: str,
+   client: bigquery.Client= None,
+   text_model: GenerativeModel = None,
+   image_model: ImageGenerationModel = None,
+   workouts_provider: callable = None,
+   timestamp: datetime = None
+):
+   """
+   Generate fitness advice and motivational image based on user's workout history.
+  
+   Args:
+       user_id: The ID of the user
+       text_model: GenerativeModel instance (injected for testing)
+       image_model: ImageGenerationModel instance (injected for testing)
+       workouts_provider: Function to get workouts (injected for testing)
+       timestamp: Optional timestamp (for testing)
+  
+   Returns:
+       Dictionary containing advice_id, content, image filename, and timestamp
+   """
+   if client is None:
+       client = bigquery.Client()
+   user_check_query = f"""
+           SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Users`
+           WHERE UserId = '{user_id}'
+       """
+   user_check_result = client.query(user_check_query).result()
+   if not list(user_check_result):
+       raise ValueError(f"User ID '{user_id}' not found.")
 
-def get_genai_advice(user_id):
-    """Returns the most recent advice from the genai model.
 
-    This function currently returns random data. You will re-write it in Unit 3.
-    """
-    advice = random.choice([
-        'Your heart rate indicates you can push yourself further. You got this!',
-        "You're doing great! Keep up the good work.",
-        'You worked hard yesterday, take it easy today.',
-        'You have burned 100 calories so far today!',
-    ])
-    image = random.choice([
-        'https://plus.unsplash.com/premium_photo-1669048780129-051d670fa2d1?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
-    ])
-    return {
-        'advice_id': 'advice1',
-        'timestamp': '2024-01-01 00:00:00',
-        'content': advice,
-        'image': image,
-    }
+   if text_model is None:
+       text_model = GenerativeModel(
+           "gemini-1.5-flash-002",
+           system_instruction="You are a qualified fitness coach. You will take input the data from client which is a list of information from different workouts they did and then you will give me a 1-2 sentence advice based on this information."
+       )
+  
+   if image_model is None:
+       image_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
+  
+   if workouts_provider is None:
+       workouts_provider = get_user_workouts  # Default to your actual function
+  
+   if timestamp is None:
+       timestamp = datetime.now()
+  
+   # Get workouts for the user
+   try:
+       workouts = workouts_provider(user_id)
+   except Exception as e:
+       print(f"❌ Workout retrieval failed: {e}")
+       return None
+  
+   result = {}
+   response_schema = {
+       "type": "OBJECT",
+       "properties": {
+           "adviceid": {"type": "STRING", "description": "Unique identifier for the advice"},
+           "advice": {"type": "STRING", "description": "The 1-2 sentence fitness advice"}
+       },
+       "required": ["adviceid", "advice"]
+   }
+  
+   # Generate advice
+   try:
+       if workouts:
+           advice_prompt = "Generate advice and an adviceid for this user based on this workout summary list: " + str(workouts)
+       else:
+           advice_prompt = "Give advice and an adviceid for this user, The user has no recorded workouts. Give a motivational message to start training"
+       advice_response = text_model.generate_content(
+           advice_prompt,
+           generation_config=GenerationConfig(
+               response_mime_type="application/json",
+               response_schema=response_schema
+           ),
+       )
+      
+       structured_response = json.loads(advice_response.text)
+       advice_id = structured_response.get("adviceid")
+       advice_content = structured_response.get("advice")
+      
+       if not advice_id or not advice_content:
+           raise ValueError("Invalid response from text model")
+          
+       result['advice_id'] = advice_id
+       result['content'] = advice_content
+   except Exception as e:
+       print(f"Error generating advice: {e}")
+       return None
+  
+   # Generate image
+   try:
+       image_prompt = f"Please generate aesthetic motivating image for this advice: {advice_content}, If humans are featured, they should be clothed"
+       image_response = image_model.generate_images(
+           prompt=image_prompt,
+           number_of_images=1
+       )
+      
+       if image_response and image_response.images:
+           image = image_response.images[0]
+           filename = f"motivation_{uuid.uuid4().hex}.png"
+           image.save(filename)
+           result['image'] = filename
+       else:
+           result['image'] = None
+   except Exception as e:
+       print(f"Error generating image: {e}")
+       result['image'] = None
+  
+   # Add timestamp
+   result['timestamp'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+  
+   return result
+    
+
