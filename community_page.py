@@ -30,5 +30,6 @@ def display_community(user_id):
                 sl.markdown(f"**{timestamp}**")
                 sl.markdown("---")
         else:
-            sl.info("You haven't posted anything yet.")
+            sl.info("📭 You haven't posted anything yet. Go crush a workout and share it!")
+
 

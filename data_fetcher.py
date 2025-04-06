@@ -202,6 +202,7 @@ def get_user_profile(user_id, query_db=bigquery, execute_query=None):
     }
 
 #used gemini for assistance: 
+@sl.cache_data(ttl=30) # Optimized with GPT 4o assistance, this is so it updates if a user shares something
 def get_user_posts(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of a user's posts from the BigQuery database."""
     client = query_db.Client()

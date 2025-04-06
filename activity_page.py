@@ -3,13 +3,17 @@ from data_fetcher import get_user_workouts, insert_user_post
 from modules import display_activity_summary, display_recent_workouts
 from datetime import datetime
 
+
 #Used GPT 4o to help with share logic
+
+@sl.cache_data  # Cache the workout data fetcher (GPT help)
+def fetch_user_workouts(user_id):
+    return get_user_workouts(user_id)
 
 def display_activity_page(user_id="user1"):
     # sl.title("🏃‍♂️ Activities Dashboard")
 
-    fetcher = lambda: get_user_workouts(user_id)
-    workouts = fetcher() 
+    workouts = fetch_user_workouts(user_id)
 
     # Sort by timestamp descending (most recent first)
     sorted_workouts = sorted(
@@ -36,7 +40,7 @@ def side_view(user_id, workouts_list):
         # Developeed with GPT 4o
         display_recent_workouts(
             user_id,
-            workouts_func=lambda uid: sorted(get_user_workouts(uid), key=lambda w: w['start_timestamp'], reverse=True)[:3]
+            workouts_func=lambda uid: workouts_list
         )
 
     with right_col:
@@ -53,6 +57,9 @@ def handle_share_section(user_id, workouts, recent_workouts):
         share_total_stats(user_id)
     elif data_source == "A Specific Workout":
         share_specific_workout(user_id, recent_workouts)
+    
+    sl.markdown("---")
+    sl.markdown('After clicking the share button, wait a few seconds until the shared notification appears.')
 
 def share_total_stats(user_id):
 
