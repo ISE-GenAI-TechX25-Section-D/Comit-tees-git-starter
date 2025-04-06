@@ -74,6 +74,7 @@ class TestDataFetcher(unittest.TestCase):
         self.assertTrue(workouts[0]['steps'], 9000)
         self.assertTrue(workouts[0]['calories_burned'], 500.0)
 
+
 #used gemini for assistance:        
 class TestGetUserFriends(unittest.TestCase):
 
