@@ -441,6 +441,6 @@ def get_genai_advice(
    result['timestamp'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
   
    return result
-print(get_genai_advice('user2'))
+
     
 
