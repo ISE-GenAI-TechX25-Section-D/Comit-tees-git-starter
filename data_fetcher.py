@@ -16,6 +16,9 @@ import os
 import uuid
 import json
 
+IMAGE_FOLDER = "generated_advice_images"
+os.makedirs(IMAGE_FOLDER, exist_ok=True)
+
 import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 from vertexai.vision_models import Image, ImageGenerationModel
@@ -425,7 +428,7 @@ def get_genai_advice(
       
        if image_response and image_response.images:
            image = image_response.images[0]
-           filename = f"motivation_{uuid.uuid4().hex}.png"
+           filename = f"{IMAGE_FOLDER}/motivation_{uuid.uuid4().hex}.png"
            image.save(filename)
            result['image'] = filename
        else:
@@ -438,5 +441,6 @@ def get_genai_advice(
    result['timestamp'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
   
    return result
+print(get_genai_advice('user2'))
     
 
