@@ -155,7 +155,7 @@ def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
     return workouts
 
 #used gemini for assistance: 
-@sl.cache_data
+@sl.cache_data # Optimized with GPT 4o assistance
 def get_user_profile(user_id, query_db=bigquery, execute_query=None):
     """Returns information about the given user.
 
