@@ -10,6 +10,8 @@ from modules import display_my_custom_component, display_post, display_genai_adv
 from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get_user_sensor_data, get_user_workouts
 from streamlit_option_menu import option_menu
 from activity_page import display
+from community_page import display_community
+
 
 
 def display_app_page():
@@ -50,9 +52,7 @@ def display_app_page():
         display(user_id=userId)
 
     elif selected == "Community":
-        sl.title("❤️ Community Page")
-        sl.subheader(f" {user_profile['full_name']}'s")
-        display_post(userId)
+        display_community(userId)
         
 
 # This is the starting point for your app. You do not need to change these lines
