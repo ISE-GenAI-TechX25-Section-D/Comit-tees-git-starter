@@ -417,6 +417,8 @@ class TestGetUserSensorData(unittest.TestCase):
         self.assertEqual(actual_data, [])
 
 class TestGetGenaiAdvice(unittest.TestCase):  
+    @patch('google.auth.default', return_value=("mock-project", None))
+    @patch('vertexai.init')
     @patch('google.cloud.bigquery.Client')
     @patch('vertexai.generative_models.GenerativeModel')
     @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained')
@@ -485,6 +487,8 @@ class TestGetGenaiAdvice(unittest.TestCase):
             
         self.assertEqual(str(context.exception), "User ID 'nonexistent_user' not found.")
 
+    @patch('google.auth.default', return_value=("mock-project", None))
+    @patch('vertexai.init')
     @patch('google.cloud.bigquery.Client')
     @patch('vertexai.generative_models.GenerativeModel')
     @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained')      
@@ -530,7 +534,8 @@ class TestGetGenaiAdvice(unittest.TestCase):
         self.assertEqual(result['advice_id'], "advice123")
         self.assertEqual(result['content'], "Start with light exercises to build a habit.")
 
-
+    @patch('google.auth.default', return_value=("mock-project", None))
+    @patch('vertexai.init')
     @patch('google.cloud.bigquery.Client')
     def test_get_genai_advice_workouts_provider_exception(self, mock_client):
         # Setup BigQuery client mock
@@ -551,7 +556,9 @@ class TestGetGenaiAdvice(unittest.TestCase):
         
         # Verify function gracefully handles the error
         self.assertIsNone(result)
-    
+
+    @patch('google.auth.default', return_value=("mock-project", None))
+    @patch('vertexai.init')
     @patch('google.cloud.bigquery.Client')
     @patch('vertexai.generative_models.GenerativeModel')
     @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained') 
@@ -580,6 +587,8 @@ class TestGetGenaiAdvice(unittest.TestCase):
         
         # Verify function gracefully handles the error
         self.assertIsNone(result)
+    @patch('google.auth.default', return_value=("mock-project", None))
+    @patch('vertexai.init')
     @patch('google.cloud.bigquery.Client')
     @patch('vertexai.generative_models.GenerativeModel')
     @patch('vertexai.vision_models.ImageGenerationModel.from_pretrained')

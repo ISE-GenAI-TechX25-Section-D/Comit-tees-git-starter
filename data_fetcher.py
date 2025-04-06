@@ -417,7 +417,7 @@ def get_genai_advice(
   
    # Generate image
    try:
-       image_prompt = f"Generate a motivational image based on this advice: {advice_content}, This image should serve as motivation for the user, avoid just bodychecking content."
+       image_prompt = f"Please generate aesthetic motivating image for this advice: {advice_content}, If humans are featured, they should be clothed"
        image_response = image_model.generate_images(
            prompt=image_prompt,
            number_of_images=1
