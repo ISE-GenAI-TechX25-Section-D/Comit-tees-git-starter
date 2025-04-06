@@ -14,6 +14,7 @@ def display_community(user_id):
 
     with tab2:
         sl.subheader("📝 Your Posts")
+        sl.markdown("---")
         user_posts = get_user_posts(user_id)
         if user_posts:
             user_posts.sort(key=lambda post: post.get('timestamp', ''), reverse=True)
