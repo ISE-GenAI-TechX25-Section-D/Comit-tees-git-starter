@@ -9,25 +9,25 @@ import streamlit as sl
 from modules import display_my_custom_component, display_post, display_genai_advice, display_activity_summary, display_recent_workouts
 from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get_user_sensor_data, get_user_workouts
 from streamlit_option_menu import option_menu
-from activity_page import display
+from activity_page import display_activity_page
 from community_page import display_community
-
-userId = 'user1'
-user_profile = get_user_profile(userId)
-user_name = user_profile['username']
-
-friends = user_profile['friends']
-friend_names = []
-friend_usernames = []
-
-for friend_id in friends:
-    profile = get_user_profile(friend_id)
-    friend_names.append(profile['full_name'])
-    friend_usernames.append(profile['username'])
 
 
 def display_app_page():
     """Displays the home page of the app."""
+
+    if 'userId' not in sl.session_state:
+        sl.session_state.userId = 'user1'
+
+    userId = sl.session_state.userId
+
+    user_profile = get_user_profile(userId)
+    user_name = user_profile['username']
+
+    friends = user_profile['friends']
+    friend_profiles = [get_user_profile(fid) for fid in friends]
+    friend_names = [p['full_name'] for p in friend_profiles]
+    friend_usernames = [p['username'] for p in friend_profiles]
 
     selected = option_menu(
         menu_title=None,  # Appears at top of sidebar
@@ -43,10 +43,12 @@ def display_app_page():
         sl.subheader(f"Welcome {user_profile['full_name']} to MyFitness!")
 
         # Profile Card
-        sl.image(user_profile['profile_image'], width=150, caption="Your Profile Picture")
-
-        sl.markdown(f"**Username:** {user_profile['username']}")
-        sl.markdown(f"**Date of Birth:** {user_profile['date_of_birth']}")
+        col1, col2 = sl.columns([1, 3])
+        with col1:
+            sl.image(user_profile['profile_image'], width=150)
+        with col2:
+            sl.markdown(f"**Username:** {user_profile['username']}")
+            sl.markdown(f"**Date of Birth:** {user_profile['date_of_birth']}")
 
         # Friends section
         sl.markdown("### 👯 Your Friends")
