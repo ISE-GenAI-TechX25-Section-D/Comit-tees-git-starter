@@ -324,14 +324,7 @@ def get_user_info(user_id, query_db=bigquery, execute_query=None):
         return None
 
 
-def get_genai_advice(
-    user_id: str,
-    client: bigquery.Client= None,
-    text_model: GenerativeModel = None,
-    image_model: ImageGenerationModel = None,
-    workouts_provider: callable = None,
-    timestamp: datetime = None
-):
+def get_genai_advice(user_id):
     """
     Generate fitness advice and motivational image based on user's workout history.
     
@@ -345,8 +338,7 @@ def get_genai_advice(
     Returns:
         Dictionary containing advice_id, content, image filename, and timestamp
     """
-    if client is None:
-        client = bigquery.Client()
+    client = bigquery.Client()
     user_check_query = f"""
             SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Users`
             WHERE UserId = '{user_id}'
@@ -355,20 +347,16 @@ def get_genai_advice(
     if not list(user_check_result):
         raise ValueError(f"User ID '{user_id}' not found.")
 
-    if text_model is None:
-        text_model = GenerativeModel(
-            "gemini-1.5-flash-002", 
-            system_instruction="You are a qualified fitness coach. You will take input the data from client which is a list of information from different workouts they did and then you will give me a 1-2 sentence advice based on this information."
-        )
+    text_model = GenerativeModel(
+        "gemini-1.5-flash-002", 
+        system_instruction="You are a qualified fitness coach. You will take input the data from client which is a list of information from different workouts they did and then you will give me a 1-2 sentence advice based on this information."
+    )
     
-    if image_model is None:
-        image_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
+    image_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
     
-    if workouts_provider is None:
-        workouts_provider = get_user_workouts  # Default to your actual function
+    workouts_provider = get_user_workouts  # Default to your actual function
     
-    if timestamp is None:
-        timestamp = datetime.now()
+    timestamp = datetime.now()
     
     # Get workouts for the user
     try:
@@ -440,4 +428,4 @@ def get_genai_advice(
     
 
 
-
+print(get_genai_advice('user6'))
