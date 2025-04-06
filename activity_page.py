@@ -64,9 +64,9 @@ def share_total_stats(user_id):
 
     if sl.button("📤 Share"):
         if stat_type == "Steps":
-            message = f"👟 I walked {steps} steps this week!"
+            message = f"👟 I walked {round(steps)} steps this week!"
         elif stat_type == "Distance":
-            message = f"🏃 I ran {distance} miles this week!"
+            message = f"🏃 I ran {round(distance)} miles this week!"
         elif stat_type == "Calories":
             message = f"🔥 I burned {calories} calories this week!"
         elif stat_type == "All":
