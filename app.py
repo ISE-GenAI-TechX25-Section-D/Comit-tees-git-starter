@@ -21,8 +21,8 @@ def display_app_page():
    
     selected = option_menu(
         menu_title=None,  # Appears at top of sidebar
-        options=["Home", "Activities"],
-        icons=["house", "bar-chart"],  # Choose icons from https://icons.getbootstrap.com/
+        options=["Home", "Activities", "Community"],
+        icons=["house", "bar-chart", "heart"],  # Choose icons from https://icons.getbootstrap.com/
         default_index=0,
         menu_icon="cast",
         orientation="horizontal",
@@ -48,6 +48,10 @@ def display_app_page():
 
     elif selected == "Activities":
         display(user_id=userId)
+
+    elif selected == "Community":
+        sl.title("❤️ Community Page")
+        sl.subheader(f" {user_profile['full_name']} friend's posts")
         
 
 # This is the starting point for your app. You do not need to change these lines
