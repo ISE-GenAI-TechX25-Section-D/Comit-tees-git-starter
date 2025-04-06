@@ -20,8 +20,7 @@ from google.cloud import bigquery
 import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 from vertexai.vision_models import Image, ImageGenerationModel
-load_dotenv()
-vertexai.init(project=os.environ.get("diegoperez16techx25"), location="us-central1")
+
 class TestDataFetcher(unittest.TestCase):
 
     def test_foo(self):
