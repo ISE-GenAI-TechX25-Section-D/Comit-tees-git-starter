@@ -21,6 +21,8 @@ import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 from vertexai.vision_models import Image, ImageGenerationModel
 
+import streamlit as sl
+
 class TestDataFetcher(unittest.TestCase):
 
     def test_foo(self):
@@ -34,6 +36,7 @@ class TestDataFetcher(unittest.TestCase):
         ]
     @patch('google.cloud.bigquery.Client')
     def test_get_user_workouts_queries_db(self, mock_big_query_client):
+        sl.cache_data.clear() # Clear the cache so that the tests can run more than once
         mock_client = Mock()
         mock_big_query_client.return_value = mock_client
         mock_query_job = Mock()

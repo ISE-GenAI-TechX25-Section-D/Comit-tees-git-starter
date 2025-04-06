@@ -15,9 +15,13 @@ from datetime import datetime
 import os
 import uuid
 import json
-
 IMAGE_FOLDER = "generated_advice_images"
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
+import streamlit as sl
+
+
+import types
+from unittest.mock import Mock, MagicMock
 
 import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
@@ -125,7 +129,14 @@ def get_user_sensor_data(client: bigquery.Client, user_id: str, workout_id: str)
         return []  # Return an empty list for other unexpected errors
     
 
-
+@sl.cache_data(
+    ttl=60,  # Set a 300-second TTL
+    hash_funcs={
+        bigquery.Client: lambda _: None,     # or id(_)
+        types.FunctionType: lambda _: None,  # ignore function hashing
+        types.MethodType: lambda _: None,    # ignore method hashing
+    }
+)
 def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of user's workouts from the BigQuery database.
     """
@@ -153,7 +164,14 @@ def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
         })
     return workouts
 
-#used gemini for assistance: 
+#used gemini for assistance:
+@sl.cache_data(
+    hash_funcs={
+        bigquery.Client: lambda _: None,     # or id(_)
+        types.FunctionType: lambda _: None,  # ignore function hashing
+        types.MethodType: lambda _: None,    # ignore method hashing
+    }
+)
 def get_user_profile(user_id, query_db=bigquery, execute_query=None):
     """Returns information about the given user.
 
@@ -200,6 +218,14 @@ def get_user_profile(user_id, query_db=bigquery, execute_query=None):
     }
 
 #used gemini for assistance: 
+@sl.cache_data(
+    ttl=30,  # Set a 300-second TTL
+    hash_funcs={
+        bigquery.Client: lambda _: None,     # or id(_)
+        types.FunctionType: lambda _: None,  # ignore function hashing
+        types.MethodType: lambda _: None,    # ignore method hashing
+    }
+)
 def get_user_posts(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of a user's posts from the BigQuery database."""
     client = query_db.Client()
@@ -273,6 +299,14 @@ def insert_user_post(user_id, content, image_url=None, query_db=bigquery, execut
     execute_query(client, insert_query)
 
 #used gemini for assistance: 
+@sl.cache_data(
+    ttl=300,  # Set a 300-second TTL
+    hash_funcs={
+        bigquery.Client: lambda _: None,     # or id(_)
+        types.FunctionType: lambda _: None,  # ignore function hashing
+        types.MethodType: lambda _: None,    # ignore method hashing
+    }
+)
 def get_user_friends(user_id, query_db=bigquery, execute_query=None):
     """Returns a list of a user's friends from the BigQuery database."""
     client = query_db.Client()
@@ -295,6 +329,13 @@ def get_user_friends(user_id, query_db=bigquery, execute_query=None):
     friends = [row[0] for row in results]
     return friends
 
+@sl.cache_data( 
+    hash_funcs={
+        bigquery.Client: lambda _: None,     # or id(_)
+        types.FunctionType: lambda _: None,  # ignore function hashing
+        types.MethodType: lambda _: None,    # ignore method hashing
+    }
+)
 def get_user_info(user_id, query_db=bigquery, execute_query=None):
     """Returns a user's profile information from the BigQuery database."""
     client = query_db.Client()
@@ -326,7 +367,13 @@ def get_user_info(user_id, query_db=bigquery, execute_query=None):
     else:
         return None
 
-
+@sl.cache_data( 
+    hash_funcs={
+        bigquery.Client: lambda _: None,     # or id(_)
+        types.FunctionType: lambda _: None,  # ignore function hashing
+        types.MethodType: lambda _: None,    # ignore method hashing
+    }
+)
 def get_genai_advice(
    user_id: str,
    client: bigquery.Client= None,
