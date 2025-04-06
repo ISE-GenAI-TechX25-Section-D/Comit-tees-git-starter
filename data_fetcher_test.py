@@ -7,15 +7,17 @@
 #############################################################################
 import unittest
 
+
 from unittest.mock import patch, Mock, MagicMock, call
 import json
 from google.cloud.bigquery import Row
 from google.cloud import exceptions as google_exceptions
 from google.api_core import exceptions as google_exceptions
-from data_fetcher import get_user_workouts, get_user_sensor_data, get_genai_advice, get_user_posts, get_user_friends, get_user_info
+from data_fetcher import get_user_workouts, get_user_sensor_data, get_genai_advice, get_user_posts, get_user_friends, get_user_info, get_user_profile
 import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig
 from vertexai.vision_models import Image, ImageGenerationModel
+
 from datetime import datetime
 from google.cloud import bigquery
 
@@ -554,8 +556,72 @@ class TestGetUserFriends(unittest.TestCase):
 
         self.assertEqual(friends, expected_friends)
 
+class TestGetUserProfile(unittest.TestCase):
+
+    def make_mock_result(self, rows):
+        mock_result = MagicMock()
+        mock_result.total_rows = len(rows)
+        mock_result.__iter__.return_value = iter(rows)  # Makes it iterable like BigQuery results
+        return mock_result
 
 
+    def mock_execute_query_profile(self, client, query):
+        if "Users" in query:
+            rows = [(
+                "Remi",                     # Name
+                "remi_the_rems",            # Username
+                "https://img.jpg",          # ImageUrl
+                datetime(1990, 1, 1)        # DateOfBirth
+            )]
+            return self.make_mock_result(rows)
+        return self.make_mock_result([])
+
+
+    def mock_execute_query_friends(self, client, query):
+        rows = []
+        if "Friends" in query:
+            rows = [("user2",), ("user3",)]
+
+        mock_result = MagicMock()
+        mock_result.total_rows = len(rows)
+        mock_result.__iter__.return_value = iter(rows)
+
+        return mock_result
+
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_profile_returns_correct_data(self, mock_big_query_client):
+        mock_client = MagicMock()
+        mock_big_query_client.return_value = mock_client
+
+        with patch('data_fetcher.get_user_friends', return_value=["user2", "user3"]):
+            user_profile = get_user_profile(
+                "user1", 
+                execute_query=self.mock_execute_query_profile
+            )
+
+        expected = {
+            "full_name": "Remi",
+            "username": "remi_the_rems",
+            "profile_image": "https://img.jpg",
+            "date_of_birth": "1990-01-01",
+            "friends": ["user2", "user3"]
+        }
+
+        self.assertEqual(user_profile, expected)
+
+
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_profile_raises_error_on_user_not_found(self, mock_big_query_client):
+        mock_client = MagicMock()
+        mock_big_query_client.return_value = mock_client
+
+        with self.assertRaises(ValueError):
+            get_user_profile("userX", execute_query=self.mock_execute_query_user_not_found)
+    
+    def mock_execute_query_user_not_found(self, client, query):
+        return self.make_mock_result([])
 
 
 

@@ -147,7 +147,7 @@ class TestDisplayPost(unittest.TestCase):
 
 class TestDisplayActivitySummary(unittest.TestCase):
     """Tests the display_activity_summary function using Streamlit's AppTest."""
-    @patch("data_fetcher.get_user_workouts")  # Patch it where it's USED
+    @patch("data_fetcher.get_user_workouts")
     def setUp(self, mock_fetch):
         """Set up the AppTest environment using from_function()"""
         
@@ -263,6 +263,12 @@ class TestDisplayActivitySummary(unittest.TestCase):
 
         import pandas as pd
 
+        renamed_column_map = {
+            "Distance (mi)": "distance",
+            "Steps Taken": "steps",
+            "Calories Burned": "calories_burned"
+        }
+
         # Get the actual dataframe from the Streamlit test response
         df_element = self.app.dataframe  # This is a Streamlit ElementList
         # Line written by ChatGPT
@@ -280,7 +286,8 @@ class TestDisplayActivitySummary(unittest.TestCase):
             expected_lst = []
 
             for workout in self.test_workouts:
-                expected_lst.append(workout[key])
+                og_key = renamed_column_map[key]
+                expected_lst.append(workout[og_key])
             
             self.assertListEqual(df[key].tolist(),expected_lst)
     

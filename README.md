@@ -202,4 +202,5 @@ python -m pytest modules_test.py
 # Example running a specific class in a test file
 python -m pytest modules_test.py::TestDisplayActivitySummary
 ```
-
+run this line to authorize queries: gcloud auth application-default login 
+(needs to be run at least once a week, or if you have issues with client.query)
