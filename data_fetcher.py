@@ -15,6 +15,7 @@ from datetime import datetime
 import os
 import uuid
 import json
+import streamlit as sl 
 
 IMAGE_FOLDER = "generated_advice_images"
 os.makedirs(IMAGE_FOLDER, exist_ok=True)
@@ -154,6 +155,7 @@ def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
     return workouts
 
 #used gemini for assistance: 
+@sl.cache_data
 def get_user_profile(user_id, query_db=bigquery, execute_query=None):
     """Returns information about the given user.
 
