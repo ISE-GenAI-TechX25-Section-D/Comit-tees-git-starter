@@ -270,7 +270,7 @@ def get_genai_advice(
     
     # Generate image
     try:
-        image_prompt = f"Generate a motivational image based on this advice: {advice_content}"
+        image_prompt = f"Generate a motivational image based on this advice: {advice_content}, This image should serve as motivation for the user, avoid just bodychecking content."
         image_response = image_model.generate_images(
             prompt=image_prompt,
             number_of_images=1
@@ -291,9 +291,6 @@ def get_genai_advice(
     result['timestamp'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
     
     return result
-
-    
-print(get_genai_advice('user3'))
     
 
 

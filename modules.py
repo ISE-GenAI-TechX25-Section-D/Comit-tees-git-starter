@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users
+from data_fetcher import get_user_workouts, get_user_posts, users, get_genai
 from PIL import Image
 import pandas as pd
 # This one has been written for you as an example. You may change it as wanted.
@@ -202,7 +202,6 @@ def display_recent_workouts(userId, workouts_func=get_user_workouts, streamlit_m
     streamlit_module.subheader("Keep up the good work(outs)!")
 
 def display_genai_advice(timestamp, content, image):
-    import streamlit as sl
     """
     Description: Displays advice developed by the AI model along with a related image.
     Input: A timestamp, content, and image.
