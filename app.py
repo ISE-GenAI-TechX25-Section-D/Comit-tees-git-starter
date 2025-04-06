@@ -12,15 +12,23 @@ from streamlit_option_menu import option_menu
 from activity_page import display
 from community_page import display_community
 
+userId = 'user1'
+user_profile = get_user_profile(userId)
+user_name = user_profile['username']
+
+friends = user_profile['friends']
+friend_names = []
+friend_usernames = []
+
+for friend_id in friends:
+    profile = get_user_profile(friend_id)
+    friend_names.append(profile['full_name'])
+    friend_usernames.append(profile['username'])
 
 
 def display_app_page():
     """Displays the home page of the app."""
-    userId = 'user1'
-    user_profile = get_user_profile(userId)
-    user_name = user_profile['username']
 
-   
     selected = option_menu(
         menu_title=None,  # Appears at top of sidebar
         options=["Home", "Activities", "Community"],
@@ -42,14 +50,15 @@ def display_app_page():
 
         # Friends section
         sl.markdown("### 👯 Your Friends")
-        if user_profile['friends']:
-            for friend_id in user_profile['friends']:
-                sl.markdown(f"- {friend_id}")
+        if friends:
+            for i, j in zip(friend_names, friend_usernames):
+                sl.markdown(f"**{i}**  \n`@{j}`")
+
         else:
             sl.info("You don't have any friends yet!")
 
     elif selected == "Activities":
-        display(user_id=userId)
+        display_activity_page(user_id=userId)
 
     elif selected == "Community":
         display_community(userId)

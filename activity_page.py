@@ -5,7 +5,7 @@ from datetime import datetime
 
 #Used GPT 4o to help with share logic
 
-def display(user_id="user1"):
+def display_activity_page(user_id="user1"):
     # sl.title("🏃‍♂️ Activities Dashboard")
 
     fetcher = lambda: get_user_workouts(user_id)
