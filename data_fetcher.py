@@ -324,108 +324,119 @@ def get_user_info(user_id, query_db=bigquery, execute_query=None):
         return None
 
 
-def get_genai_advice(user_id):
-    """
-    Generate fitness advice and motivational image based on user's workout history.
-    
-    Args:
-        user_id: The ID of the user
-        text_model: GenerativeModel instance (injected for testing)
-        image_model: ImageGenerationModel instance (injected for testing)
-        workouts_provider: Function to get workouts (injected for testing)
-        timestamp: Optional timestamp (for testing)
-    
-    Returns:
-        Dictionary containing advice_id, content, image filename, and timestamp
-    """
-    client = bigquery.Client()
-    user_check_query = f"""
-            SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Users`
-            WHERE UserId = '{user_id}'
-        """
-    user_check_result = client.query(user_check_query).result()
-    if not list(user_check_result):
-        raise ValueError(f"User ID '{user_id}' not found.")
-
-    text_model = GenerativeModel(
-        "gemini-1.5-flash-002", 
-        system_instruction="You are a qualified fitness coach. You will take input the data from client which is a list of information from different workouts they did and then you will give me a 1-2 sentence advice based on this information."
-    )
-    
-    image_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
-    
-    workouts_provider = get_user_workouts  # Default to your actual function
-    
-    timestamp = datetime.now()
-    
-    # Get workouts for the user
-    try:
-        workouts = workouts_provider(user_id)
-    except Exception as e:
-        print(f"❌ Workout retrieval failed: {e}")
-        return None 
-    
-    result = {}
-    response_schema = {
-        "type": "OBJECT",
-        "properties": {
-            "adviceid": {"type": "STRING", "description": "Unique identifier for the advice"},
-            "advice": {"type": "STRING", "description": "The 1-2 sentence fitness advice"}
-        },
-        "required": ["adviceid", "advice"]
-    }
-    
-    # Generate advice
-    try:
-        if workouts:
-            advice_prompt = "Generate advice and an adviceid for this user based on this workout summary list: " + str(workouts)
-        else:
-            advice_prompt = "Give advice and an adviceid for this user, The user has no recorded workouts. Give a motivational message to start training"
-        advice_response = text_model.generate_content(
-            advice_prompt,
-            generation_config=GenerationConfig(
-                response_mime_type="application/json",
-                response_schema=response_schema
-            ),
-        )
-        
-        structured_response = json.loads(advice_response.text)
-        advice_id = structured_response.get("adviceid")
-        advice_content = structured_response.get("advice")
-        
-        if not advice_id or not advice_content:
-            raise ValueError("Invalid response from text model")
-            
-        result['advice_id'] = advice_id
-        result['content'] = advice_content
-    except Exception as e:
-        print(f"Error generating advice: {e}")
-        return None
-    
-    # Generate image
-    try:
-        image_prompt = f"Generate a motivational image based on this advice: {advice_content}, This image should serve as motivation for the user, avoid just bodychecking content."
-        image_response = image_model.generate_images(
-            prompt=image_prompt,
-            number_of_images=1
-        )
-        
-        if image_response and image_response.images:
-            image = image_response.images[0]
-            filename = f"motivation_{uuid.uuid4().hex}.png"
-            image.save(filename)
-            result['image'] = filename
-        else:
-            result['image'] = None
-    except Exception as e:
-        print(f"Error generating image: {e}")
-        result['image'] = None
-    
-    # Add timestamp
-    result['timestamp'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
-    
-    return result
-    
+def get_genai_advice(
+   user_id: str,
+   client: bigquery.Client= None,
+   text_model: GenerativeModel = None,
+   image_model: ImageGenerationModel = None,
+   workouts_provider: callable = None,
+   timestamp: datetime = None
+):
+   """
+   Generate fitness advice and motivational image based on user's workout history.
+  
+   Args:
+       user_id: The ID of the user
+       text_model: GenerativeModel instance (injected for testing)
+       image_model: ImageGenerationModel instance (injected for testing)
+       workouts_provider: Function to get workouts (injected for testing)
+       timestamp: Optional timestamp (for testing)
+  
+   Returns:
+       Dictionary containing advice_id, content, image filename, and timestamp
+   """
+   if client is None:
+       client = bigquery.Client()
+   user_check_query = f"""
+           SELECT 1 FROM `diegoperez16techx25`.`Committees`.`Users`
+           WHERE UserId = '{user_id}'
+       """
+   user_check_result = client.query(user_check_query).result()
+   if not list(user_check_result):
+       raise ValueError(f"User ID '{user_id}' not found.")
 
 
-print(get_genai_advice('user6'))
+   if text_model is None:
+       text_model = GenerativeModel(
+           "gemini-1.5-flash-002",
+           system_instruction="You are a qualified fitness coach. You will take input the data from client which is a list of information from different workouts they did and then you will give me a 1-2 sentence advice based on this information."
+       )
+  
+   if image_model is None:
+       image_model = ImageGenerationModel.from_pretrained("imagegeneration@006")
+  
+   if workouts_provider is None:
+       workouts_provider = get_user_workouts  # Default to your actual function
+  
+   if timestamp is None:
+       timestamp = datetime.now()
+  
+   # Get workouts for the user
+   try:
+       workouts = workouts_provider(user_id)
+   except Exception as e:
+       print(f"❌ Workout retrieval failed: {e}")
+       return None
+  
+   result = {}
+   response_schema = {
+       "type": "OBJECT",
+       "properties": {
+           "adviceid": {"type": "STRING", "description": "Unique identifier for the advice"},
+           "advice": {"type": "STRING", "description": "The 1-2 sentence fitness advice"}
+       },
+       "required": ["adviceid", "advice"]
+   }
+  
+   # Generate advice
+   try:
+       if workouts:
+           advice_prompt = "Generate advice and an adviceid for this user based on this workout summary list: " + str(workouts)
+       else:
+           advice_prompt = "Give advice and an adviceid for this user, The user has no recorded workouts. Give a motivational message to start training"
+       advice_response = text_model.generate_content(
+           advice_prompt,
+           generation_config=GenerationConfig(
+               response_mime_type="application/json",
+               response_schema=response_schema
+           ),
+       )
+      
+       structured_response = json.loads(advice_response.text)
+       advice_id = structured_response.get("adviceid")
+       advice_content = structured_response.get("advice")
+      
+       if not advice_id or not advice_content:
+           raise ValueError("Invalid response from text model")
+          
+       result['advice_id'] = advice_id
+       result['content'] = advice_content
+   except Exception as e:
+       print(f"Error generating advice: {e}")
+       return None
+  
+   # Generate image
+   try:
+       image_prompt = f"Generate a motivational image based on this advice: {advice_content}, This image should serve as motivation for the user, avoid just bodychecking content."
+       image_response = image_model.generate_images(
+           prompt=image_prompt,
+           number_of_images=1
+       )
+      
+       if image_response and image_response.images:
+           image = image_response.images[0]
+           filename = f"motivation_{uuid.uuid4().hex}.png"
+           image.save(filename)
+           result['image'] = filename
+       else:
+           result['image'] = None
+   except Exception as e:
+       print(f"Error generating image: {e}")
+       result['image'] = None
+  
+   # Add timestamp
+   result['timestamp'] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+  
+   return result
+    
+
