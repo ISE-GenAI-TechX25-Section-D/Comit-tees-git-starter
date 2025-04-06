@@ -1,15 +1,27 @@
 import streamlit as sl
 from data_fetcher import get_user_workouts, insert_user_post
 from modules import display_activity_summary, display_recent_workouts
+from datetime import datetime
+
+#Used GPT 4o to help with share logic
 
 def display(user_id="user1"):
-    sl.title("🏃‍♂️ Activities Dashboard")
+    # sl.title("🏃‍♂️ Activities Dashboard")
 
     fetcher = lambda: get_user_workouts(user_id)
     workouts = fetcher() 
-    recent_workouts = workouts[-3:] if len(workouts) >= 3 else workouts
 
-    side_view(user_id, fetcher)
+    # Sort by timestamp descending (most recent first)
+    sorted_workouts = sorted(
+        workouts,
+        key=lambda w: w['start_timestamp'][:w['start_timestamp'].index(' ')],
+        reverse=True
+    )
+
+    # Get the 3 most recent
+    recent_workouts = sorted_workouts[:3]
+
+    side_view(user_id, recent_workouts)
 
     total_distance = sl.session_state.get("total_distance", 0)
     total_steps = sl.session_state.get("total_steps", 0)
@@ -17,18 +29,18 @@ def display(user_id="user1"):
 
     handle_share_section(user_id, workouts, recent_workouts)
 
-def side_view(user_id, fetcher):
+def side_view(user_id, workouts_list):
     left_col, right_col = sl.columns(2)
 
     with left_col:
-        sl.subheader("🕒 Recent Workouts")
-        # display_activity_summary expects a fetcher function
-        display_recent_workouts(userId=user_id, workouts_func=get_user_workouts, streamlit_module=sl)
+        # Developeed with GPT 4o
+        display_recent_workouts(
+            user_id,
+            workouts_func=lambda uid: sorted(get_user_workouts(uid), key=lambda w: w['start_timestamp'], reverse=True)[:3]
+        )
 
     with right_col:
-        sl.subheader("📊 Summary")
-        # display_recent_workouts directly takes the get_user_workouts function
-        display_activity_summary(fetcher=fetcher)
+        display_activity_summary(workouts_list)
 
 
 def handle_share_section(user_id, workouts, recent_workouts):
