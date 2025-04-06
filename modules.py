@@ -9,9 +9,10 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users
+from data_fetcher import get_user_workouts, get_user_posts, users, get_user_friends, get_user_info
 from PIL import Image
 import pandas as pd
+from google.cloud import bigquery
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
     """Displays a 'my custom component' which showcases an example of how custom
@@ -30,56 +31,30 @@ def display_my_custom_component(value):
     html_file_name = "my_custom_component"
     create_component(data, html_file_name)
 
-
-#used gemini for assistance: https://gemini.google.com/app/1942ca8c30888d33
-def display_post(user_id, users_dict=users, get_posts_func=get_user_posts, streamlit_module=sl):
-
+#used gemini for assistance: 
+def display_post(user_id, query_db=bigquery, streamlit_module=sl):
     """
-    Description:
-        Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post
-    Input:
-        User(id): whoever is logged in
-    Output:
-        None: instead, shows the user's friends' posts as well as info on the page
+    Displays list of user's friends' posts: includes, pfp, name, username, timestamp, and post.
     """
-
-    if user_id not in users:
-        sl.error("User not found.")
-        return
-
-    user = users[user_id]
-    friends = user['friends']
+    friends = get_user_friends(user_id, query_db=query_db)
 
     streamlit_module.header("Friends' Posts")
 
     for friend_id in friends:
-        if friend_id in users_dict:
-            friend = users_dict[friend_id]
-            posts = get_posts_func(friend_id)
+        friend_info = get_user_info(friend_id, query_db=query_db)
+        if friend_info:
+            posts = get_user_posts(friend_id, query_db=query_db)
 
-            streamlit_module.image(friend['profile_image'], width=100)
-            streamlit_module.subheader(f"{friend['full_name']} (@{friend['username']})")
+            streamlit_module.image(friend_info['profile_image'], width=100)
+            streamlit_module.subheader(f"{friend_info['full_name']} (@{friend_info['username']})")
             for post in posts:
                 streamlit_module.write(f"**{post['content']}**")
                 streamlit_module.write(f"Posted on: {post['timestamp']}")
                 if post['image']:
                     streamlit_module.image(post['image'], width=200)
-                streamlit_module.markdown("---")  # Separator between posts
+                streamlit_module.markdown("---")
         else:
             streamlit_module.warning(f"Friend ID '{friend_id}' not found.")
-
-# """
-# def main():
-#     sl.title("Social Media Feed")
-
-#     user_id = sl.selectbox("Select a User", list(users.keys()))
-
-#     if sl.button("Show Feed"):
-#         display_post(user_id)
-
-# if __name__ == "__main__":
-#     main()
-# """
 
 # display_activity_summary(fetcher=lambda: get_user_workouts(user_id)
 def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = dependency injection, this set up allows to pass hardcoded data still
@@ -141,6 +116,10 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
         total_distance += workout['distance']
         total_steps += workout['steps']
         total_calories += workout['calories_burned']
+    
+    sl.session_state.total_distance = total_distance
+    sl.session_state.total_steps = total_steps
+    sl.session_state.total_calories = total_calories
 
     
     # Displaying summary statistics
@@ -153,7 +132,15 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     sl.subheader("Workout Details")
     df = pd.DataFrame(workouts)
     # Line written by ChatGPT
-    sl.dataframe(df[["start_timestamp", "end_timestamp", "distance", "steps", "calories_burned"]])
+    df_display = df[["distance", "steps", "calories_burned"]].rename(columns={
+    "distance": "Distance (mi)",
+    "steps": "Steps Taken",
+    "calories_burned": "Calories Burned"
+    })
+
+    df_display.index = df_display.index + 1
+
+    sl.dataframe(df_display)
     # Line written by ChatGPT
     
     # Weekly Calorie Progress

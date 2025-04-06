@@ -8,7 +8,8 @@
 import streamlit as sl
 from modules import display_my_custom_component, display_post, display_genai_advice, display_activity_summary, display_recent_workouts
 from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get_user_sensor_data, get_user_workouts
-
+from streamlit_option_menu import option_menu
+from activity_page import display
 
 
 def display_app_page():
@@ -17,19 +18,38 @@ def display_app_page():
     user_profile = get_user_profile(userId)
     user_name = user_profile['username']
 
-    sl.title(f'Welcome {user_name} to MyFitness!')
+   
+    selected = option_menu(
+        menu_title=None,  # Appears at top of sidebar
+        options=["Home", "Activities"],
+        icons=["house", "bar-chart"],  # Choose icons from https://icons.getbootstrap.com/
+        default_index=0,
+        menu_icon="cast",
+        orientation="horizontal",
+    )
 
-    posts, recent_workouts, activity_summary, genai_advice = sl.tabs(["Posts", "Recent Workouts", "Activity Summary", "GenAI Advice"])
+    if selected == "Home":
+        sl.title("🏠 Home Page")
+        sl.subheader(f"Welcome {user_profile['full_name']} to MyFitness!")
 
-    with posts:
-        display_post(userId)
-    with recent_workouts:
-        display_recent_workouts(userId)
-    with activity_summary:
-        display_activity_summary(fetcher=lambda:get_user_workouts(userId)) # Using dependency injection
-    with genai_advice:
-        display_genai_advice(get_genai_advice(userId)['timestamp'],get_genai_advice(userId)['content'],get_genai_advice(userId)['image'] )
+        # Profile Card
+        sl.image(user_profile['profile_image'], width=150, caption="Your Profile Picture")
+
+        sl.markdown(f"**Username:** {user_profile['username']}")
+        sl.markdown(f"**Date of Birth:** {user_profile['date_of_birth']}")
+
+        # Friends section
+        sl.markdown("### 👯 Your Friends")
+        if user_profile['friends']:
+            for friend_id in user_profile['friends']:
+                sl.markdown(f"- {friend_id}")
+        else:
+            sl.info("You don't have any friends yet!")
+
+    elif selected == "Activities":
+        display(user_id=userId)
         
+
 # This is the starting point for your app. You do not need to change these lines
 if __name__ == '__main__':
     display_app_page()
