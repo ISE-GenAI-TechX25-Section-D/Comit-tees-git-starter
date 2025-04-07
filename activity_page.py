@@ -53,6 +53,9 @@ def handle_share_section(user_id, workouts, recent_workouts):
         share_total_stats(user_id)
     elif data_source == "A Specific Workout":
         share_specific_workout(user_id, recent_workouts)
+    sl.markdown("---")
+    sl.markdown("When you press the sharing button, wait a few seconds until the shared notification appears!")
+    
 
 def share_total_stats(user_id):
 
