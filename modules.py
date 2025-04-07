@@ -145,7 +145,7 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     
     # Weekly Calorie Progress
     sl.subheader("Weekly Calorie Progress")
-    week_goal = 450  # Default weekly goal
+    week_goal = 2000  # Default weekly goal
     sl.session_state.weekly_calorie_goal = week_goal
     progress_bar_amount = min(((total_calories / week_goal) * 100), 100)
     # Line written by ChatGPT

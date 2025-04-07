@@ -296,9 +296,9 @@ class TestDisplayActivitySummary(unittest.TestCase):
         # Check for second subheader that should appear (second one created)
         self.assertIn("Weekly Calorie Progress", self.subheaders[1].body)
 
-        self.assertEqual(self.app.session_state.weekly_calorie_goal, 450) # Default calorie goal for now (hardcoded)
+        self.assertEqual(self.app.session_state.weekly_calorie_goal, 2000) # Default calorie goal for now (hardcoded)
 
-        test_progress_bar_amount = min(((self.total_calories / 450) * 100), 100)
+        test_progress_bar_amount = min(((self.total_calories / 2000) * 100), 100)
         # Line written by ChatGPT
 
         self.assertEqual(test_progress_bar_amount, self.app.session_state.weekly_calorie_progress_amount)
