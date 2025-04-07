@@ -62,7 +62,14 @@ users = {
     },
 }
 
-
+@sl.cache_data(
+    ttl=60,
+    hash_funcs={
+        bigquery.Client: lambda _: None,     # or id(_)
+        types.FunctionType: lambda _: None,  # ignore function hashing
+        types.MethodType: lambda _: None,    # ignore method hashing
+    }
+)
 def get_user_sensor_data(client: bigquery.Client, user_id: str, workout_id: str):
     """Returns a list of timestampped information for a given workout.
     """
@@ -130,7 +137,7 @@ def get_user_sensor_data(client: bigquery.Client, user_id: str, workout_id: str)
     
 
 @sl.cache_data(
-    ttl=60,  # Set a 300-second TTL
+    ttl=60, 
     hash_funcs={
         bigquery.Client: lambda _: None,     # or id(_)
         types.FunctionType: lambda _: None,  # ignore function hashing
@@ -166,6 +173,7 @@ def get_user_workouts(user_id, query_db=bigquery, execute_query=None):
 
 #used gemini for assistance:
 @sl.cache_data(
+    ttl=200,
     hash_funcs={
         bigquery.Client: lambda _: None,     # or id(_)
         types.FunctionType: lambda _: None,  # ignore function hashing
@@ -219,11 +227,11 @@ def get_user_profile(user_id, query_db=bigquery, execute_query=None):
 
 #used gemini for assistance: 
 @sl.cache_data(
-    ttl=30,  # Set a 300-second TTL
+    ttl=30, 
     hash_funcs={
-        bigquery.Client: lambda _: None,     # or id(_)
-        types.FunctionType: lambda _: None,  # ignore function hashing
-        types.MethodType: lambda _: None,    # ignore method hashing
+        bigquery.Client: lambda _: None,    
+        types.FunctionType: lambda _: None,
+        types.MethodType: lambda _: None,    
     }
 )
 def get_user_posts(user_id, query_db=bigquery, execute_query=None):
@@ -302,9 +310,9 @@ def insert_user_post(user_id, content, image_url=None, query_db=bigquery, execut
 @sl.cache_data(
     ttl=300,  # Set a 300-second TTL
     hash_funcs={
-        bigquery.Client: lambda _: None,     # or id(_)
-        types.FunctionType: lambda _: None,  # ignore function hashing
-        types.MethodType: lambda _: None,    # ignore method hashing
+        bigquery.Client: lambda _: None,    
+        types.FunctionType: lambda _: None,  
+        types.MethodType: lambda _: None,   
     }
 )
 def get_user_friends(user_id, query_db=bigquery, execute_query=None):
@@ -331,9 +339,9 @@ def get_user_friends(user_id, query_db=bigquery, execute_query=None):
 
 @sl.cache_data( 
     hash_funcs={
-        bigquery.Client: lambda _: None,     # or id(_)
-        types.FunctionType: lambda _: None,  # ignore function hashing
-        types.MethodType: lambda _: None,    # ignore method hashing
+        bigquery.Client: lambda _: None,  
+        types.FunctionType: lambda _: None, 
+        types.MethodType: lambda _: None,   
     }
 )
 def get_user_info(user_id, query_db=bigquery, execute_query=None):
@@ -367,11 +375,13 @@ def get_user_info(user_id, query_db=bigquery, execute_query=None):
     else:
         return None
 
-@sl.cache_data( 
+
+
+@sl.cache_data(
+    ttl=120, 
     hash_funcs={
-        bigquery.Client: lambda _: None,     # or id(_)
-        types.FunctionType: lambda _: None,  # ignore function hashing
-        types.MethodType: lambda _: None,    # ignore method hashing
+        bigquery.Client: lambda _: None,    
+        types.FunctionType: lambda _: None, 
     }
 )
 def get_genai_advice(
