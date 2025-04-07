@@ -1,7 +1,10 @@
 import streamlit as sl
-from data_fetcher import get_user_workouts, insert_user_post
+from data_fetcher import get_user_workouts, insert_user_post,get_user_sensor_data
 from modules import display_activity_summary, display_recent_workouts
 from datetime import datetime
+import pandas as pd
+from google.cloud import bigquery
+
 
 #Used GPT 4o to help with share logic
 
@@ -41,6 +44,31 @@ def side_view(user_id, workouts_list):
 
     with right_col:
         display_activity_summary(workouts_list)
+        sl.markdown(" ")
+        sl.markdown("---")
+        handle_sensor_data(workouts_list, user_id)
+    
+
+def handle_sensor_data(workouts_list, user_id):
+    client = bigquery.Client()
+    sl.header("Sensor Data")
+
+    for workout in workouts_list:
+        sl.subheader(f"{workout['workout_id']}")
+
+        sensor_data = get_user_sensor_data(
+            client,
+            user_id=user_id,
+            workout_id=workout['workout_id']
+        )
+        
+        if sensor_data:
+            with sl.expander("Sensor Data"):
+                sl.write("Sensor Data:")
+                df = pd.DataFrame(sensor_data)
+                sl.table(df)  # or st.dataframe(df)
+        else:
+            sl.write("No sensor data found for this workout.")
 
 
 def handle_share_section(user_id, workouts, recent_workouts):
