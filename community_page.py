@@ -7,7 +7,7 @@ def display_community(user_id):
     sl.title("❤️ Community Page")
     sl.subheader(f" {user_profile['full_name']}'s")
 
-    tab1, tab2, tab3 = sl.tabs(["👥 Friends' Posts","GenAI Advice", "👤 My Posts"])
+    tab1, space, tab2, space, tab3 = sl.tabs(["👥 Friends' Posts","GenAI Advice", "👤 My Posts"])
 
     with tab1:
         display_post(user_id)
@@ -34,4 +34,6 @@ def display_community(user_id):
                 sl.markdown("---")
         else:
             sl.info("You haven't posted anything yet.")
+
+
 
