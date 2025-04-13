@@ -32,6 +32,55 @@ The leaderboard includes:
 The leaderboard is integrated into the `community.py` page, providing an interactive and competitive view of user activity within the app.
 
 ====================
+Sprint Overview
+====================
+
+*Important!: This information is also found in Deliverable Sprint Planning #118 issue in Unit 5 Deliverable Milestone.
+
+Sprint Planning - Unit 5 Deliverable
+
+Goal:
+Implement the core features for Unit 5, including login, leaderboard, and user stats integration.
+---------------------------
+Tasks:
+---------------------------
+
+Login
+-----------
+#92 
+#101 
+#102 
+#103 
+#105 
+#106 
+115 
+116 
+#117 
+
+Leaderboard
+-----------
+107 
+108 
+110 
+111 
+112 
+113 
+114 
+---------------------------
+Sprints:
+---------------------------
+
+Sprint 1:
+-----------
+Start: April 14  
+End: April 18
+
+Sprint 2:
+-----------
+Start: April 19
+End: April 21
+
+====================
 DEVELOPMENT PLAN
 ====================
 
