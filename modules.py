@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users, get_user_friends, get_user_info
+from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
@@ -145,7 +145,7 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     
     # Weekly Calorie Progress
     sl.subheader("Weekly Calorie Progress")
-    week_goal = 450  # Default weekly goal
+    week_goal = 2000  # Default weekly goal
     sl.session_state.weekly_calorie_goal = week_goal
     progress_bar_amount = min(((total_calories / week_goal) * 100), 100)
     # Line written by ChatGPT
@@ -188,16 +188,36 @@ def display_recent_workouts(userId, workouts_func=get_user_workouts, streamlit_m
         streamlit_module.write("---")
     streamlit_module.subheader("Keep up the good work(outs)!")
 
-def display_genai_advice(timestamp, content, image):
-    import streamlit as sl
+def display_genai_advice(
+    userId,
+    advice_func=get_genai_advice,
+    streamlit_module=sl
+):
     """
-    Description: Displays advice developed by the AI model along with a related image.
-    Input: A timestamp, content, and image.
-    Output: Returns Nothing
-            Outputs a page containing the advice and image.
+    Displays AI-generated fitness advice with a related image.
+    
+    Args:
+        timestamp: When the advice was generated
+        content: The advice text content
+        image: Path to the generated image
+        title: Main title of the section
+        subheader: Subheader text
+        display_fn: Dependency-injected Streamlit display function
+        
+    Returns:
+        None (renders UI components)
     """
-    sl.title("AI Fitness Coach")
-    sl.subheader("Personalized advice based on your activities")
-    sl.markdown(content)
-    sl.image(image)
-    sl.markdown(f"Last updated: {timestamp}")
+    advice = advice_func(userId)
+    timestamp = advice['timestamp']
+    content = advice['content']
+    image = advice['image']
+    title = "AI Fitness Coach🦾"
+    subheader = "Personalized advice based on your activities"
+    streamlit_module.title(title)
+    streamlit_module.subheader(subheader)
+    streamlit_module.markdown(content)
+    
+    if image:  # Only show image if available
+        streamlit_module.image(image)
+    
+    streamlit_module.caption(f"Last updated: {timestamp}")
