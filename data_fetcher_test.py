@@ -23,11 +23,7 @@ from vertexai.vision_models import Image, ImageGenerationModel
 
 import streamlit as sl
 
-class TestDataFetcher(unittest.TestCase):
-
-    def test_foo(self):
-        """Tests foo."""
-        pass
+class TestGetUserWorkouts(unittest.TestCase):
     
     def mock_execute_query(self, client, query):
         return [
