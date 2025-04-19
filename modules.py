@@ -221,3 +221,32 @@ def display_genai_advice(
         streamlit_module.image(image)
     
     streamlit_module.caption(f"Last updated: {timestamp}")
+
+def login_box():
+    st.subheader("🔐 Login")
+
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    login_button = st.button("Log In")
+
+    if login_button:
+        if not username or not password:
+            st.warning("Please enter both username and password.")
+            return None
+
+        user_info = get_user_info(username)
+        expected_password = get_user_password(username)
+
+        if user_info is None:
+            st.error("User not found.")
+            return None
+
+        if password != expected_password:
+            st.error("Incorrect password.")
+            return None
+
+        st.success(f"Welcome back, {user_info['Name']}!")
+        return user_info  # Can be used to set session state or display more info
+
+    return None
