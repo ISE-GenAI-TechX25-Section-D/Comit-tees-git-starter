@@ -529,3 +529,31 @@ def set_user_password(username, password, query_db=bigquery, execute_query=None)
             return query_job.result()
         execute_query = default_execute_query
     execute_query(client, query) #no return value, don't need to assign to var
+
+
+def get_global_calories_list(client: bigquery.Client= None):
+    if client is None:
+       client = bigquery.Client()
+    query = client.query('''
+    SELECT
+      Users.Name,
+      SUM(Workouts.CaloriesBurned) AS TotalCalories
+    FROM
+      `diegoperez16techx25`.`Committees`.`Users` AS Users
+    INNER JOIN
+      `diegoperez16techx25`.`Committees`.`Workouts` AS Workouts
+    ON
+      Users.UserId = Workouts.UserId
+    GROUP BY
+      1;
+    ''')
+    results = query.result()
+    user_calories_list = []
+    for row in results:
+        name = row.Name
+        total_calories = row.TotalCalories
+        user_calories_list.append([name, int(total_calories)])
+    sorted_user_calories_list = sorted(user_calories_list, key=lambda item: item[1], reverse=True)
+    if len(sorted_user_calories_list) > 10:
+        sorted_user_calories_list = sorted_user_calories_list[:10]
+    return sorted_user_calories_list
