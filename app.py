@@ -11,13 +11,16 @@ from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get
 from streamlit_option_menu import option_menu
 from activity_page import display_activity_page
 from community_page import display_community
+from auth_page import display_login, logout
 
 
 def display_app_page():
     """Displays the home page of the app."""
-
+    
     if 'userId' not in sl.session_state:
-        sl.session_state.userId = 'user1'
+        # sl.session_state.userId = 'user1'
+        display_login()
+        return
 
     userId = sl.session_state.userId
 
@@ -64,6 +67,11 @@ def display_app_page():
 
     elif selected == "Community":
         display_community(userId)
+    
+    sl.markdown("---")
+    if sl.button("🚪 Log Out"):
+        logout()
+
         
 
 # This is the starting point for your app. You do not need to change these lines
