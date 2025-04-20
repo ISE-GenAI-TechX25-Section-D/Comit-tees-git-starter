@@ -570,7 +570,8 @@ def get_global_calories_list(client: bigquery.Client= None):
     query = client.query('''
     SELECT
       Users.Name,
-      SUM(Workouts.CaloriesBurned) AS TotalCalories
+      SUM(Workouts.CaloriesBurned) AS TotalCalories,
+      Users.UserId  -- Include UserId in the query
     FROM
       `diegoperez16techx25`.`Committees`.`Users` AS Users
     INNER JOIN
@@ -578,15 +579,68 @@ def get_global_calories_list(client: bigquery.Client= None):
     ON
       Users.UserId = Workouts.UserId
     GROUP BY
-      1;
+      1, 3; --  Include UserId in the GROUP BY clause
     ''')
     results = query.result()
-    user_calories_list = []
+    global_calories_list = []
     for row in results:
         name = row.Name
         total_calories = row.TotalCalories
-        user_calories_list.append([name, int(total_calories)])
-    sorted_user_calories_list = sorted(user_calories_list, key=lambda item: item[1], reverse=True)
-    if len(sorted_user_calories_list) > 10:
-        sorted_user_calories_list = sorted_user_calories_list[:10]
-    return sorted_user_calories_list
+        user_id = row.UserId # Extract UserId from the row
+        global_calories_list.append((name, int(total_calories), user_id)) # Append a tuple
+    sorted_global_calories_list = sorted(global_calories_list, key=lambda item: item[1], reverse=True)
+    if len(sorted_global_calories_list) > 10:
+        sorted_global_calories_list = sorted_global_calories_list[:10]
+    return sorted_global_calories_list
+
+
+def get_friends_calories_list(user_id, client: bigquery.Client= None):
+    if client is None:
+       client = bigquery.Client()
+    query = client.query(f'''
+    SELECT
+    Users.Name,
+    SUM(Workouts.CaloriesBurned) AS TotalCalories,
+    Users.UserId  -- Include UserId in the query
+    FROM
+    `diegoperez16techx25`.Committees.Users
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Users.UserId = '{user_id}'  --  Calories for the specified user
+    GROUP BY
+    1, 3
+
+    UNION ALL
+
+    SELECT
+    Users.Name,
+    SUM(Workouts.CaloriesBurned) AS TotalCalories,
+    Users.UserId  -- Include UserId in the query
+    FROM
+    `diegoperez16techx25`.`Committees`.`Users` AS Users
+    INNER JOIN
+    `diegoperez16techx25`.`Committees`.`Friends` AS Friends ON Users.UserId = Friends.friend_id
+    INNER JOIN
+    `diegoperez16techx25`.`Committees`.`Workouts` AS Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Friends.user_id = '{user_id}'
+    GROUP BY
+    1, 3;
+        ''')
+    results = query.result()
+    friends_calories_list = []
+    for row in results:
+        name = row.Name
+        total_calories = row.TotalCalories
+        user_id = row.UserId
+        friends_calories_list.append((name, int(total_calories), user_id))
+    sorted_friends_calories_list = sorted(friends_calories_list, key=lambda item: item[1], reverse=True)
+    if len(sorted_friends_calories_list) > 10:
+        sorted_friends_calories_list = sorted_friends_calories_list[:10]
+    return sorted_friends_calories_list
+
+if __name__ == "__main__":
+    # print(get_global_calories_list())
+    print(get_friends_calories_list('user1'))
+
