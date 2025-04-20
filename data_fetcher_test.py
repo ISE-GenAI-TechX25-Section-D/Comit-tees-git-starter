@@ -7,14 +7,12 @@
 #############################################################################
 import unittest
 from unittest.mock import patch, Mock, call, MagicMock
-from data_fetcher import get_user_workouts
 from datetime import datetime
 import json
 from google.cloud.bigquery import Row
 from google.cloud import exceptions as google_exceptions
 from google.api_core import exceptions as google_exceptions
-from data_fetcher import get_user_workouts, get_user_sensor_data, get_genai_advice, get_user_posts, get_user_friends, get_user_info, get_user_profile, get_global_calories_list
-from datetime import datetime
+from data_fetcher import get_user_workouts, get_user_sensor_data, get_genai_advice, get_user_posts, get_user_friends, get_user_info, get_user_profile, get_global_calories_list, set_user_password, get_user_password
 from google.cloud import bigquery
 
 import vertexai
@@ -72,6 +70,75 @@ class TestGetUserWorkouts(unittest.TestCase):
         self.assertTrue(workouts[0]['distance'], 6.0)
         self.assertTrue(workouts[0]['steps'], 9000)
         self.assertTrue(workouts[0]['calories_burned'], 500.0)
+
+class TestPasswords(unittest.TestCase):
+
+    def mock_big_query_client_passwords(self, client, query):
+        return "Password"
+
+    @patch('google.cloud.bigquery.Client')
+    def test_set_user_password_updates_password(self, mock_big_query_client):
+        sl.cache_data.clear() # Clear the cache so that the tests can run more than once
+        username = 'jlsampson'
+        password = "Password"
+        expected_query = f""" UPDATE `diegoperez16techx25.Committees.Users` SET Password = '{password}' WHERE Username = '{username}' """
+    
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job
+        mock_query_job.result.return_value = None  # Simulate successful execution
+
+        set_user_password(username, password)
+
+        mock_big_query_client.assert_called_once()
+        mock_client.query.assert_called_once_with(expected_query)
+        mock_query_job.result.assert_called_once()
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_password_returns_correct_password(self, mock_big_query_client):
+        sl.cache_data.clear() # Clear the cache so that the tests can run more than once
+        username = 'jlsampson'
+        expected_password = 'Password'
+        expected_query = f""" SELECT Password FROM `diegoperez16techx25.Committees.Users` where username = '{username}' """
+    
+        mock_client = Mock()
+        mock_big_query_client.return_value = mock_client
+        mock_query_job = Mock()
+        mock_client.query.return_value = mock_query_job
+        mock_query_job.result.return_value = None  # Simulate successful execution
+        mock_results = MagicMock()
+        mock_query_job.result.return_value = mock_results
+        mock_results.total_rows = 1
+        mock_results.__iter__.return_value = [("Password",)]  # Simulate a single row with the password
+
+        actual_password = get_user_password(username)
+
+        mock_big_query_client.assert_called_once()
+        mock_client.query.assert_called_once_with(expected_query)
+        mock_query_job.result.assert_called_once()
+        self.assertEqual(expected_password, actual_password)
+        
+    @patch('google.cloud.bigquery.Client')
+    def test_get_user_password_user_not_found(self, mock_bigquery_client):
+        # Arrange
+        username = "nonexistentuser"
+        expected_query = f""" SELECT Password FROM `diegoperez16techx25.Committees.Users` where username = '{username}' """
+
+        # Create mock objects simulating no results
+        mock_client = Mock()
+        mock_bigquery_client.return_value = mock_client
+        mock_query_job = MagicMock()
+        mock_client.query.return_value = mock_query_job
+        mock_results = MagicMock() 
+        mock_query_job.result.return_value = mock_results
+        mock_results.total_rows = 0
+        mock_results.__iter__.return_value = []
+
+        # Act and Assert
+        with self.assertRaises(ValueError) as context:
+            get_user_password(username, query_db=bigquery)
+        self.assertEqual(str(context.exception), f"User {username} not found.")
 
 
 #used gemini for assistance:        
