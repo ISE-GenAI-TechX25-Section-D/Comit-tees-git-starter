@@ -640,7 +640,4 @@ def get_friends_calories_list(user_id, client: bigquery.Client= None):
         sorted_friends_calories_list = sorted_friends_calories_list[:10]
     return sorted_friends_calories_list
 
-if __name__ == "__main__":
-    # print(get_global_calories_list())
-    print(get_friends_calories_list('user1'))
 
