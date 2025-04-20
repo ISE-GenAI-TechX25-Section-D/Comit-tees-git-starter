@@ -44,8 +44,7 @@ def generate_sql_insert(user_id, workout_id):
     """
 
 start_id = get_last_workout_number() + 1
-users = ["user4"]
-
+users = ["user5","user6","user7","user8","user9","user10","user11","user12","user13","user14","user15","user16"]
 for user in users:
     for i in range(3):  # 3 workouts per user
         workout_number = start_id

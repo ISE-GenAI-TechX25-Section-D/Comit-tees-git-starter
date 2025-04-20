@@ -499,9 +499,36 @@ def get_genai_advice(
   
    return result
 
+@sl.cache_data(
+    hash_funcs={
+        bigquery.Client: lambda _: None,    
+        types.FunctionType: lambda _: None, 
+    }
+)
+def get_user_ID_from_username(username, query_db=bigquery, execute_query=None):
+    client = query_db.Client()
+    query = f""" SELECT UserId FROM `diegoperez16techx25.Committees.Users` where username = '{username}' """
+    
+    if execute_query is None:
+        def default_execute_query(client, query):
+            query_job = client.query(query)
+            return query_job.result()
+        execute_query = default_execute_query
+    
+    results = execute_query(client, query)
+    if results.total_rows == 0:
+        raise ValueError(f"User {username} not found.")
+        
+    row = list(results)[0]
+    return row[0]
     
 
-
+@sl.cache_data( 
+    hash_funcs={
+        bigquery.Client: lambda _: None,    
+        types.FunctionType: lambda _: None, 
+    }
+)
 def get_user_password(username, query_db=bigquery, execute_query=None):
     client = query_db.Client()
     query = f""" SELECT Password FROM `diegoperez16techx25.Committees.Users` where username = '{username}' """
@@ -519,6 +546,12 @@ def get_user_password(username, query_db=bigquery, execute_query=None):
     row = list(results)[0]
     return row[0]
 
+@sl.cache_data(
+    hash_funcs={
+        bigquery.Client: lambda _: None,    
+        types.FunctionType: lambda _: None, 
+    }
+)
 def set_user_password(username, password, query_db=bigquery, execute_query=None):
     client = query_db.Client()
     query = f""" UPDATE `diegoperez16techx25.Committees.Users` SET Password = '{password}' WHERE Username = '{username}' """
