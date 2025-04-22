@@ -759,3 +759,28 @@ def insert_sensor_data(workout_id, sensor_id, timestamp, value, query_db=bigquer
 
     client.query(query, job_config=job_config).result()
 
+def get_all_users(query_db=bigquery):
+    client = query_db.Client()
+    query = """
+        SELECT UserId, Name, Username
+        FROM `diegoperez16techx25.Committees.Users`
+    """
+    results = client.query(query).result()
+    return [{"id": row["UserId"], "name": row["Name"], "username": row["Username"]} for row in results]
+
+def add_friend(user_id, friend_id, query_db=bigquery):
+    client = query_db.Client()
+    query = f"""
+        INSERT INTO `diegoperez16techx25.Committees.Friends` (user_id, friend_id)
+        VALUES (@user_id, @friend_id)
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("user_id", "STRING", user_id),
+            bigquery.ScalarQueryParameter("friend_id", "STRING", friend_id),
+        ]
+    )
+    client.query(query, job_config=job_config).result()
+
+
+

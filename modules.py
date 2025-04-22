@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import insert_user_post, get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
+from data_fetcher import get_all_users, add_friend, insert_user_post, get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
@@ -87,8 +87,6 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
 
     if fetcher is not None:
         workouts_list = fetcher()
-
-    sl.title("🏋️ Activity Fitness Summary")
 
     
     # workout_options = ["Running", "Full Body", "Chest", "Cardio", "Back"] # Using list when workout types are available
@@ -173,7 +171,7 @@ def display_recent_workouts(userId, workouts_func=get_user_workouts, streamlit_m
         Outputs relevant information to website
     """
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    streamlit_module.title('💪Recent Workouts💪')
+    # streamlit_module.title('💪Recent Workouts💪')
     workouts_list = workouts_func(userId)
     if len(workouts_list) == 0:
         streamlit_module.subheader("No Workout Data To Display")
@@ -607,3 +605,30 @@ def post_creation_box(user_id):
 
             sl.session_state.reset_post_form = True  # Flag triggers clearing on next run
             sl.rerun()
+
+def add_friend_box(user_id):
+    sl.subheader("👥 Add a Friend")
+
+    all_users = get_all_users()
+    current_friends = get_user_friends(user_id)
+
+    # Filter out yourself and people you're already friends with
+    available_users = [
+        user for user in all_users
+        if user["id"] != user_id and user["id"] not in current_friends
+    ]
+
+    if not available_users:
+        sl.info("You're already friends with everyone!")
+        return
+
+    # Build display-friendly names for selection
+    user_display_map = {f'{u["name"]} ({u["username"]})': u["id"] for u in available_users}
+    selected_display = sl.selectbox("Select someone to add:", user_display_map.keys())
+    selected_id = user_display_map[selected_display]
+
+    if sl.button("Add Friend"):
+        add_friend(user_id, selected_id)
+        sl.success(f"✅ You added {selected_display} as a friend!")
+        get_user_friends.clear()
+        sl.rerun()
