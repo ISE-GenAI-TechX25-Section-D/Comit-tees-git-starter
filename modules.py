@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list
+from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
@@ -324,6 +324,13 @@ def signup_box():
     return None
 
 def manual_workout_box():
+
+    SENSOR_TYPES = {
+    "sensor1": {"name": "Heart Rate", "units": "bpm"},
+    "sensor2": {"name": "Step Count", "units": "steps"},
+    "sensor3": {"name": "Temperature", "units": "Celsius"}
+    }
+
     sl.subheader("🏃 Add Workout Manually")
 
     if "workout_submitted" not in sl.session_state:
@@ -344,6 +351,36 @@ def manual_workout_box():
     steps = sl.number_input("Total Steps", min_value=0)
     calories = sl.number_input("Calories Burned", min_value=0.0, format="%.2f")
 
+    add_sensor_data = sl.checkbox("➕ Add Sensor Data (optional)")
+
+    sensor_entries = []
+    sensor_ids = list(SENSOR_TYPES.keys())
+
+    if add_sensor_data:
+        num_rows = sl.number_input("How many sensor readings?", min_value=1, max_value=10, value=1)
+
+        for i in range(num_rows):
+            sl.markdown(f"**Sensor Entry {i + 1}**")
+
+            selected_sensor_id = sl.selectbox(f"Sensor Type", sensor_ids, key=f"sensor_id_{i}")
+            selected_sensor = SENSOR_TYPES[selected_sensor_id]
+
+            sl.caption(f"{selected_sensor['name']} ({selected_sensor['units']})")
+
+            sensor_time = sl.time_input("Timestamp", key=f"sensor_time_{i}")
+            sensor_value = sl.number_input(
+                f"Sensor Value ({selected_sensor['units']})",
+                key=f"sensor_value_{i}",
+                format="%.2f"
+            )
+
+        sensor_entries.append({
+            "sensor_id": selected_sensor_id,
+            "timestamp": sensor_time,
+            "value": sensor_value
+        })
+
+
     if sl.button("Add Workout"):
         if start_time >= end_time:
             sl.error("End time must be after start time.")
@@ -356,7 +393,7 @@ def manual_workout_box():
         start_timestamp = datetime.combine(date, start_time)
         end_timestamp = datetime.combine(date, end_time)
 
-        insert_workout(
+        workout_id = insert_workout(
             user_id=sl.session_state.userId,
             start=start_timestamp,
             end=end_timestamp,
@@ -364,6 +401,16 @@ def manual_workout_box():
             steps=steps,
             calories=calories
         )
+
+        if add_sensor_data:
+            for sensor in sensor_entries:
+                full_timestamp = datetime.combine(date, sensor["timestamp"])
+                insert_sensor_data(
+                    workout_id=workout_id,
+                    sensor_id=sensor["sensor_id"],
+                    timestamp=full_timestamp,
+                    value=sensor["value"]
+                )
 
         sl.success("✅ Workout added!")
 

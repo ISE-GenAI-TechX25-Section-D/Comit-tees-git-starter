@@ -737,4 +737,25 @@ def insert_workout(user_id, start, end, distance, steps, calories, query_db=bigq
     )
 
     client.query(query, job_config=job_config).result()
+    return workout_id
+
+def insert_sensor_data(workout_id, sensor_id, timestamp, value, query_db=bigquery):
+    client = query_db.Client()
+    table_id = "diegoperez16techx25.Committees.SensorData"
+
+    query = f"""
+        INSERT INTO `{table_id}` (SensorId, WorkoutID, Timestamp, SensorValue)
+        VALUES (@sensor_id, @workout_id, @timestamp, @value)
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("sensor_id", "STRING", sensor_id),
+            bigquery.ScalarQueryParameter("workout_id", "STRING", workout_id),
+            bigquery.ScalarQueryParameter("timestamp", "DATETIME", timestamp.strftime('%Y-%m-%d %H:%M:%S')),
+            bigquery.ScalarQueryParameter("value", "FLOAT64", value)
+        ]
+    )
+
+    client.query(query, job_config=job_config).result()
 
