@@ -20,6 +20,7 @@ def display_app_page():
     if 'userId' not in sl.session_state:
         # sl.session_state.userId = 'user1'
         display_login()
+        sl.markdown('Testers: Log in using username \'alicej\' and password \'AliceR0ckss\'')
         return
 
     userId = sl.session_state.userId
@@ -43,7 +44,7 @@ def display_app_page():
 
     if selected == "Home":
         sl.title("🏠 Home Page")
-        sl.subheader(f"Welcome {user_profile['full_name']} to MyFitness!")
+        sl.subheader(f"Welcome {user_profile['full_name']} to Commit To Fit!")
 
         # Profile Card
         col1, col2 = sl.columns([1, 3])
