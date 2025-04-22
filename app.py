@@ -11,7 +11,7 @@ from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get
 from streamlit_option_menu import option_menu
 from activity_page import display_activity_page
 from community_page import display_community
-from auth_page import display_login, logout
+from auth_page import display_auth, logout
 
 
 def display_app_page():
@@ -19,7 +19,7 @@ def display_app_page():
     
     if 'userId' not in sl.session_state:
         # sl.session_state.userId = 'user1'
-        display_login()
+        display_auth()
         sl.markdown('Testers: Log in using username \'alicej\' and password \'AliceR0ckss\'')
         return
 

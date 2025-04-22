@@ -641,3 +641,52 @@ def get_friends_calories_list(user_id, client: bigquery.Client= None):
     return sorted_friends_calories_list
 
 
+
+def create_new_user(username, name, image_url, date_of_birth, password, query_db=bigquery, execute_query=None):
+    client = query_db.Client()
+    def get_next_user_id():
+        query = f"""
+            SELECT MAX(CAST(REGEXP_EXTRACT(UserId, r'user(\\d+)') AS INT64)) AS max_id
+            FROM `diegoperez16techx25.Committees.Users`
+            WHERE REGEXP_CONTAINS(UserId, r'^user\\d+$')
+        """
+        result = client.query(query).result()
+        row = next(result)
+        return f"user{(row.max_id + 1) if row.max_id else 1}"
+    
+    user_id = get_next_user_id()
+    
+    query = f"""
+        INSERT INTO `diegoperez16techx25.Committees.Users` (UserId, Name, Username, ImageUrl, DateOfBirth, Password)
+        VALUES (
+            '{user_id}',
+            '{name.replace("'", "\\'")}',
+            '{username}',
+            '{image_url}',
+            DATE '{date_of_birth}',
+            '{password}'
+        )
+    """
+
+    client.query(query).result()
+
+def username_exists(username, query_db=bigquery):
+    client = query_db.Client()
+    table_id = "diegoperez16techx25.Committees.Users"
+
+    query = f"""
+        SELECT COUNT(*) as count
+        FROM `{table_id}`
+        WHERE Username = @username
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("username", "STRING", username)
+        ]
+    )
+
+    result = client.query(query, job_config=job_config).result()
+    row = next(result)
+
+    return row.count > 0
