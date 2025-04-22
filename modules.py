@@ -9,10 +9,12 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username, get_global_calories_list, get_friends_calories_list
+from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists, get_global_calories_list, get_friends_calories_list
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
+from datetime import datetime, date
+
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
     """Displays a 'my custom component' which showcases an example of how custom
@@ -252,6 +254,68 @@ def login_box():
         sl.session_state.userId = userID
         sl.rerun()
         return True  # Can be used to set session state or display more info
+
+    return None
+
+def signup_box():
+    sl.subheader("📝 Sign Up")
+
+    # Check for submitted state
+    if "signup_submitted" not in sl.session_state:
+        sl.session_state.signup_submitted = False
+
+    # If already submitted, show success and login button
+    if sl.session_state.signup_submitted:
+        sl.success("✅ Account created successfully!")
+        if sl.button("Go to Login"):
+            sl.session_state.auth_mode = 'login'
+            sl.session_state.signup_submitted = False
+            sl.rerun()
+        return
+
+    first_name = sl.text_input("First Name")
+    last_name = sl.text_input("Last Name")
+    dob = sl.date_input(
+    "Date of Birth",
+    value=date(2000, 1, 1),
+    min_value=date(1900, 1, 1),
+    max_value=datetime.today().date()
+    )
+    username = sl.text_input("Username")
+    image_url = sl.text_input("Profile Image URL (optional)")
+    password = sl.text_input("Password", type="password")
+    confirm_password = sl.text_input("Confirm Password", type="password")
+
+    signup_button = sl.button("Create Account")
+
+    if signup_button:
+        # Validate required fields
+        if not all([first_name, last_name, dob, username, password, confirm_password]):
+            sl.warning("Please fill in all required fields.")
+            return None
+
+        if password != confirm_password:
+            sl.error("Passwords do not match.")
+            return None
+
+        if username_exists(username):
+            sl.error("Username already taken.")
+            return None
+
+        full_name = f"{first_name} {last_name}"
+
+        create_new_user(
+            username=username,
+            name=full_name,
+            image_url=image_url,
+            date_of_birth=str(dob),
+            password=password
+            
+        )
+
+        sl.success("Account created! You can now log in.")
+        sl.session_state.signup_submitted = True
+        sl.rerun()
 
     return None
 
