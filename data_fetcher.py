@@ -570,7 +570,8 @@ def get_global_calories_list(client: bigquery.Client= None):
     query = client.query('''
     SELECT
       Users.Name,
-      SUM(Workouts.CaloriesBurned) AS TotalCalories
+      SUM(Workouts.CaloriesBurned) AS TotalCalories,
+      Users.UserId  -- Include UserId in the query
     FROM
       `diegoperez16techx25`.`Committees`.`Users` AS Users
     INNER JOIN
@@ -578,15 +579,208 @@ def get_global_calories_list(client: bigquery.Client= None):
     ON
       Users.UserId = Workouts.UserId
     GROUP BY
-      1;
+      1, 3; --  Include UserId in the GROUP BY clause
     ''')
     results = query.result()
-    user_calories_list = []
+    global_calories_list = []
     for row in results:
         name = row.Name
         total_calories = row.TotalCalories
-        user_calories_list.append([name, int(total_calories)])
-    sorted_user_calories_list = sorted(user_calories_list, key=lambda item: item[1], reverse=True)
-    if len(sorted_user_calories_list) > 10:
-        sorted_user_calories_list = sorted_user_calories_list[:10]
-    return sorted_user_calories_list
+        user_id = row.UserId # Extract UserId from the row
+        global_calories_list.append((name, int(total_calories), user_id)) # Append a tuple
+    sorted_global_calories_list = sorted(global_calories_list, key=lambda item: item[1], reverse=True)
+    if len(sorted_global_calories_list) > 10:
+        sorted_global_calories_list = sorted_global_calories_list[:10]
+    return sorted_global_calories_list
+
+
+def get_friends_calories_list(user_id, client: bigquery.Client= None):
+    if client is None:
+       client = bigquery.Client()
+    query = client.query(f'''
+    SELECT
+    Users.Name,
+    SUM(Workouts.CaloriesBurned) AS TotalCalories,
+    Users.UserId  -- Include UserId in the query
+    FROM
+    `diegoperez16techx25`.Committees.Users
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Users.UserId = '{user_id}'  --  Calories for the specified user
+    GROUP BY
+    1, 3
+
+    UNION ALL
+
+    SELECT
+    Users.Name,
+    SUM(Workouts.CaloriesBurned) AS TotalCalories,
+    Users.UserId  -- Include UserId in the query
+    FROM
+    `diegoperez16techx25`.`Committees`.`Users` AS Users
+    INNER JOIN
+    `diegoperez16techx25`.`Committees`.`Friends` AS Friends ON Users.UserId = Friends.friend_id
+    INNER JOIN
+    `diegoperez16techx25`.`Committees`.`Workouts` AS Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Friends.user_id = '{user_id}'
+    GROUP BY
+    1, 3;
+        ''')
+    results = query.result()
+    friends_calories_list = []
+    for row in results:
+        name = row.Name
+        total_calories = row.TotalCalories
+        user_id = row.UserId
+        friends_calories_list.append((name, int(total_calories), user_id))
+    sorted_friends_calories_list = sorted(friends_calories_list, key=lambda item: item[1], reverse=True)
+    if len(sorted_friends_calories_list) > 10:
+        sorted_friends_calories_list = sorted_friends_calories_list[:10]
+    return sorted_friends_calories_list
+
+
+
+def create_new_user(username, name, image_url, date_of_birth, password, query_db=bigquery, execute_query=None):
+    client = query_db.Client()
+    def get_next_user_id():
+        query = f"""
+            SELECT MAX(CAST(REGEXP_EXTRACT(UserId, r'user(\\d+)') AS INT64)) AS max_id
+            FROM `diegoperez16techx25.Committees.Users`
+            WHERE REGEXP_CONTAINS(UserId, r'^user\\d+$')
+        """
+        result = client.query(query).result()
+        row = next(result)
+        return f"user{(row.max_id + 1) if row.max_id else 1}"
+    
+    user_id = get_next_user_id()
+    
+    query = f"""
+        INSERT INTO `diegoperez16techx25.Committees.Users` (UserId, Name, Username, ImageUrl, DateOfBirth, Password)
+        VALUES (
+            '{user_id}',
+            '{name.replace("'", "\\'")}',
+            '{username}',
+            '{image_url}',
+            DATE '{date_of_birth}',
+            '{password}'
+        )
+    """
+
+    client.query(query).result()
+
+def username_exists(username, query_db=bigquery):
+    client = query_db.Client()
+    table_id = "diegoperez16techx25.Committees.Users"
+
+    query = f"""
+        SELECT COUNT(*) as count
+        FROM `{table_id}`
+        WHERE Username = @username
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("username", "STRING", username)
+        ]
+    )
+
+    result = client.query(query, job_config=job_config).result()
+    row = next(result)
+
+    return row.count > 0
+
+def insert_workout(user_id, start, end, distance, steps, calories, query_db=bigquery):
+    client = query_db.Client()
+    table_id = "diegoperez16techx25.Committees.Workouts"
+
+    def get_next_workout_id():
+        query = f"""
+            SELECT MAX(CAST(REGEXP_EXTRACT(WorkoutId, r'workout(\\d+)') AS INT64)) AS max_id
+            FROM `{table_id}`
+            WHERE REGEXP_CONTAINS(WorkoutId, r'^workout\\d+$')
+        """
+        result = client.query(query).result()
+        row = next(result)
+        return f"workout{(row.max_id + 1) if row.max_id else 1}"
+
+    workout_id = get_next_workout_id()
+
+    # Convert Python datetime to DATETIME string format
+    start_str = start.strftime('%Y-%m-%d %H:%M:%S')
+    end_str = end.strftime('%Y-%m-%d %H:%M:%S')
+
+    query = f"""
+        INSERT INTO `{table_id}` (WorkoutId, UserId, StartTimestamp, EndTimestamp, TotalDistance, TotalSteps, CaloriesBurned)
+        VALUES (
+            @workout_id,
+            @user_id,
+            @start,
+            @end,
+            @distance,
+            @steps,
+            @calories
+        )
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("workout_id", "STRING", workout_id),
+            bigquery.ScalarQueryParameter("user_id", "STRING", user_id),
+            bigquery.ScalarQueryParameter("start", "DATETIME", start_str),
+            bigquery.ScalarQueryParameter("end", "DATETIME", end_str),
+            bigquery.ScalarQueryParameter("distance", "FLOAT64", distance),
+            bigquery.ScalarQueryParameter("steps", "INT64", steps),
+            bigquery.ScalarQueryParameter("calories", "FLOAT64", calories),
+        ]
+    )
+
+    client.query(query, job_config=job_config).result()
+    return workout_id
+
+def insert_sensor_data(workout_id, sensor_id, timestamp, value, query_db=bigquery):
+    client = query_db.Client()
+    table_id = "diegoperez16techx25.Committees.SensorData"
+
+    query = f"""
+        INSERT INTO `{table_id}` (SensorId, WorkoutID, Timestamp, SensorValue)
+        VALUES (@sensor_id, @workout_id, @timestamp, @value)
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("sensor_id", "STRING", sensor_id),
+            bigquery.ScalarQueryParameter("workout_id", "STRING", workout_id),
+            bigquery.ScalarQueryParameter("timestamp", "DATETIME", timestamp.strftime('%Y-%m-%d %H:%M:%S')),
+            bigquery.ScalarQueryParameter("value", "FLOAT64", value)
+        ]
+    )
+
+    client.query(query, job_config=job_config).result()
+
+def get_all_users(query_db=bigquery):
+    client = query_db.Client()
+    query = """
+        SELECT UserId, Name, Username
+        FROM `diegoperez16techx25.Committees.Users`
+    """
+    results = client.query(query).result()
+    return [{"id": row["UserId"], "name": row["Name"], "username": row["Username"]} for row in results]
+
+def add_friend(user_id, friend_id, query_db=bigquery):
+    client = query_db.Client()
+    query = f"""
+        INSERT INTO `diegoperez16techx25.Committees.Friends` (user_id, friend_id)
+        VALUES (@user_id, @friend_id)
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("user_id", "STRING", user_id),
+            bigquery.ScalarQueryParameter("friend_id", "STRING", friend_id),
+        ]
+    )
+    client.query(query, job_config=job_config).result()
+
+
+

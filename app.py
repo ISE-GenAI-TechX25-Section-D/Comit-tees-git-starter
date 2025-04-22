@@ -11,7 +11,9 @@ from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get
 from streamlit_option_menu import option_menu
 from activity_page import display_activity_page
 from community_page import display_community
-from auth_page import display_login, logout
+from auth_page import display_auth, logout
+from sidebar import display_sidebar
+from modules import post_creation_box, manual_workout_box, add_friend_box
 
 
 def display_app_page():
@@ -19,7 +21,7 @@ def display_app_page():
     
     if 'userId' not in sl.session_state:
         # sl.session_state.userId = 'user1'
-        display_login()
+        display_auth()
         sl.markdown('Testers: Log in using username \'alicej\' and password \'AliceR0ckss\'')
         return
 
@@ -55,19 +57,32 @@ def display_app_page():
             sl.markdown(f"**Date of Birth:** {user_profile['date_of_birth']}")
 
         # Friends section
-        sl.markdown("### 👯 Your Friends")
+        sl.markdown("---")
+        sl.markdown("###  Your Friends")
         if friends:
-            for i, j in zip(friend_names, friend_usernames):
-                sl.markdown(f"**{i}**  \n`@{j}`")
-
+            with sl.container():
+                for i, j in zip(friend_names, friend_usernames):
+                    sl.markdown(f"**{i}**  \n`@{j}`")
         else:
             sl.info("You don't have any friends yet!")
+
 
     elif selected == "Activities":
         display_activity_page(user_id=userId)
 
     elif selected == "Community":
         display_community(userId)
+    
+    selected_action = display_sidebar(userId)
+
+    if selected_action == "Create Post":
+        post_creation_box(userId)
+
+    elif selected_action == "Add Workout":
+        manual_workout_box()
+
+    elif selected_action == "Add Friend":
+        add_friend_box(userId)
     
     sl.markdown("---")
     if sl.button("🚪 Log Out"):

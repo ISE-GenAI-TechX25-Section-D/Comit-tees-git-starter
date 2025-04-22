@@ -199,16 +199,6 @@ class TestDisplayActivitySummary(unittest.TestCase):
 
         self.columns = [col for col in self.app.columns]
     
-    def test_title_existance(self):
-        """Check if title is present"""
-        title_elements = [el.value for el in self.app.title]
-
-        # Check for title
-        found_title = any("🏋️ Activity Fitness Summary" in text for text in title_elements)
-        self.assertTrue(found_title, "Title '🏋️ Activity Fitness Summary' not found!")
-    
-    def test_app_init_workout_lists(self):
-        self.assertEqual(self.app.session_state.workouts_list, self.test_workouts)
     
     def test_select_box(self):
         select_box_elements = [el.label for el in self.app.selectbox]
@@ -388,12 +378,12 @@ class TestDisplayRecentWorkouts(unittest.TestCase):
             }
         ]
 
-    @patch('streamlit.title')
-    def test_drw_contains_title(self, mock_title):
-        "Checks to make sure the title is present"
-        mock_sl = Mock()
-        display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
-        self.assertTrue(mock_sl.title.call_count > 0, "Title \'Recent Workouts\' not found!")
+    # @patch('streamlit.title')
+    # def test_drw_contains_title(self, mock_title):
+    #     "Checks to make sure the title is present"
+    #     mock_sl = Mock()
+    #     display_recent_workouts('user1', workouts_func=self.mock_get_user_workouts, streamlit_module=mock_sl)
+    #     self.assertTrue(mock_sl.title.call_count > 0, "Title \'Recent Workouts\' not found!")
     
     @patch('streamlit.subheader')
     def test_drw_contains_subheader(self, mock_subheader):

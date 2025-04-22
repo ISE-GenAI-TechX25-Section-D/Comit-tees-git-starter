@@ -9,10 +9,12 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username
+from data_fetcher import get_all_users, add_friend, insert_user_post, get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
+from datetime import datetime, date
+
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
     """Displays a 'my custom component' which showcases an example of how custom
@@ -86,14 +88,11 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     if fetcher is not None:
         workouts_list = fetcher()
 
-    sl.title("🏋️ Activity Fitness Summary")
     
     # workout_options = ["Running", "Full Body", "Chest", "Cardio", "Back"] # Using list when workout types are available
 
     workout_options = ["Running"]
 
-    if 'workouts_list' not in sl.session_state:
-            sl.session_state.workouts_list = workouts_list
     
     if "selected_workout" not in sl.session_state:
         sl.session_state.selected_workout = workout_options[0]
@@ -104,7 +103,7 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     if workout_type != sl.session_state.selected_workout:
         sl.session_state.selected_workout = workout_type
     
-    workouts = sl.session_state.workouts_list
+    workouts = workouts_list
 
     # Summary metrics
   
@@ -131,8 +130,13 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     # Workout Details Table
     sl.subheader("Workout Details")
     df = pd.DataFrame(workouts)
+
+    df_display = df.copy()
+
+    df_display = df_display.drop(columns=["start_lat_lng", "end_lat_lng"], errors="ignore")
+
     # Line written by ChatGPT
-    df_display = df[["distance", "steps", "calories_burned"]].rename(columns={
+    df_display = df_display[["distance", "steps", "calories_burned"]].rename(columns={
     "distance": "Distance (mi)",
     "steps": "Steps Taken",
     "calories_burned": "Calories Burned"
@@ -167,7 +171,7 @@ def display_recent_workouts(userId, workouts_func=get_user_workouts, streamlit_m
         Outputs relevant information to website
     """
     #Made with slight debugging help from Gemini: https://g.co/gemini/share/d246196d413a
-    streamlit_module.title('💪Recent Workouts💪')
+    # streamlit_module.title('💪Recent Workouts💪')
     workouts_list = workouts_func(userId)
     if len(workouts_list) == 0:
         streamlit_module.subheader("No Workout Data To Display")
@@ -254,3 +258,377 @@ def login_box():
         return True  # Can be used to set session state or display more info
 
     return None
+
+def signup_box():
+    sl.subheader("📝 Sign Up")
+
+    # Check for submitted state
+    if "signup_submitted" not in sl.session_state:
+        sl.session_state.signup_submitted = False
+
+    # If already submitted, show success and login button
+    if sl.session_state.signup_submitted:
+        sl.success("✅ Account created successfully!")
+        if sl.button("Go to Login"):
+            sl.session_state.auth_mode = 'login'
+            sl.session_state.signup_submitted = False
+            sl.rerun()
+        return
+
+    first_name = sl.text_input("First Name")
+    last_name = sl.text_input("Last Name")
+    dob = sl.date_input(
+    "Date of Birth",
+    value=date(2000, 1, 1),
+    min_value=date(1900, 1, 1),
+    max_value=datetime.today().date()
+    )
+    username = sl.text_input("Username")
+    image_url = sl.text_input("Profile Image URL (optional)")
+    password = sl.text_input("Password", type="password")
+    confirm_password = sl.text_input("Confirm Password", type="password")
+
+    signup_button = sl.button("Create Account")
+
+    if signup_button:
+        # Validate required fields
+        if not all([first_name, last_name, dob, username, password, confirm_password]):
+            sl.warning("Please fill in all required fields.")
+            return None
+
+        if password != confirm_password:
+            sl.error("Passwords do not match.")
+            return None
+
+        if username_exists(username):
+            sl.error("Username already taken.")
+            return None
+
+        full_name = f"{first_name} {last_name}"
+
+        create_new_user(
+            username=username,
+            name=full_name,
+            image_url=image_url,
+            date_of_birth=str(dob),
+            password=password
+            
+        )
+
+        sl.success("Account created! You can now log in.")
+        sl.session_state.signup_submitted = True
+        sl.rerun()
+
+    return None
+
+def manual_workout_box():
+
+    SENSOR_TYPES = {
+    "sensor1": {"name": "Heart Rate", "units": "bpm"},
+    "sensor2": {"name": "Step Count", "units": "steps"},
+    "sensor3": {"name": "Temperature", "units": "Celsius"}
+    }
+
+    sl.subheader("🏃 Add Workout Manually")
+
+    if "workout_submitted" not in sl.session_state:
+        sl.session_state.workout_submitted = False
+
+    if sl.session_state.workout_submitted:
+        sl.success("Workout added successfully!")
+        if sl.button("Add Another Workout"):
+            sl.session_state.workout_submitted = False
+            sl.rerun()
+        return
+
+    start_time = sl.time_input("Start Time")
+    end_time = sl.time_input("End Time")
+    date = sl.date_input("Date")
+
+    distance = sl.number_input("Total Distance (miles)", min_value=0.0, format="%.2f")
+    steps = sl.number_input("Total Steps", min_value=0)
+    calories = sl.number_input("Calories Burned", min_value=0.0, format="%.2f")
+
+    add_sensor_data = sl.checkbox("➕ Add Sensor Data (optional)")
+
+    sensor_entries = []
+    sensor_ids = list(SENSOR_TYPES.keys())
+
+    if add_sensor_data:
+        num_rows = sl.number_input("How many sensor readings?", min_value=1, max_value=10, value=1)
+
+        for i in range(num_rows):
+            sl.markdown(f"**Sensor Entry {i + 1}**")
+
+            selected_sensor_id = sl.selectbox(f"Sensor Type", sensor_ids, key=f"sensor_id_{i}")
+            selected_sensor = SENSOR_TYPES[selected_sensor_id]
+
+            sl.caption(f"{selected_sensor['name']} ({selected_sensor['units']})")
+
+            sensor_time = sl.time_input("Timestamp", key=f"sensor_time_{i}")
+            sensor_value = sl.number_input(
+                f"Sensor Value ({selected_sensor['units']})",
+                key=f"sensor_value_{i}",
+                format="%.2f"
+            )
+
+        sensor_entries.append({
+            "sensor_id": selected_sensor_id,
+            "timestamp": sensor_time,
+            "value": sensor_value
+        })
+
+
+    if sl.button("Add Workout"):
+        if start_time >= end_time:
+            sl.error("End time must be after start time.")
+            return
+
+        if 'userId' not in sl.session_state:
+            sl.error("You're not logged in.")
+            return
+
+        start_timestamp = datetime.combine(date, start_time)
+        end_timestamp = datetime.combine(date, end_time)
+
+        workout_id = insert_workout(
+            user_id=sl.session_state.userId,
+            start=start_timestamp,
+            end=end_timestamp,
+            distance=distance,
+            steps=steps,
+            calories=calories
+        )
+
+        if add_sensor_data:
+            for sensor in sensor_entries:
+                full_timestamp = datetime.combine(date, sensor["timestamp"])
+                insert_sensor_data(
+                    workout_id=workout_id,
+                    sensor_id=sensor["sensor_id"],
+                    timestamp=full_timestamp,
+                    value=sensor["value"]
+                )
+
+        sl.success("✅ Workout added!")
+
+        get_user_workouts.clear()
+
+        sl.session_state.workout_submitted = True
+        sl.rerun()
+
+def display_calories_leaderboard_global(streamlit_module=sl, get_calories_func=get_global_calories_list):
+    """
+    Displays the global leaderboard of users based on total calories burned,
+    with the top 3 on a visual "pedestal".
+
+    Args:
+        streamlit_module: The Streamlit module to use for display.
+        get_calories_func: The function to fetch the sorted list of (name, calories, user_id).
+    """
+    leaderboard_data = get_calories_func()
+
+    if leaderboard_data:
+        streamlit_module.subheader("🔥 Global Calories Burned Leaderboard 🔥")
+
+        top_3 = leaderboard_data[:3]
+        remaining = leaderboard_data[3:5]
+
+        cols = streamlit_module.columns(3)
+        pedestal_color = "#D3D3D3"  # Light gray color for the pedestal
+
+        for i, (name, calories, user_id) in enumerate(top_3):
+            with cols[i]:
+                rank_emoji = ""
+                if i == 0:
+                    rank_emoji = "🥇"
+                elif i == 1:
+                    rank_emoji = "🥈"
+                elif i == 2:
+                    rank_emoji = "🥉"
+
+                streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} <b>{name}</b></div>", unsafe_allow_html=True)
+                streamlit_module.markdown(f"<div style='text-align:center;'>{calories} calories</div>", unsafe_allow_html=True)
+                streamlit_module.markdown(
+                    f"<div style='text-align:center; background-color:{pedestal_color}; padding: 5px; border-radius: 5px;'></div>",
+                    unsafe_allow_html=True,
+                )
+
+        if remaining:
+            streamlit_module.markdown("---")
+            streamlit_module.subheader("Top Performers (4th & 5th)")
+            for i, (name, calories, user_id) in enumerate(remaining):
+                streamlit_module.write(f"**{i + 4}. {name}:** {calories} calories")
+    else:
+        streamlit_module.info("No calorie data available to display the leaderboard.")
+
+    streamlit_module.markdown("---")
+    streamlit_module.subheader("All Participants (Top 10)")
+    if leaderboard_data:
+        for name, calories, user_id in leaderboard_data[:10]:
+            streamlit_module.write(f"**{name}:** {calories} calories burned")
+    else:
+        streamlit_module.write("No data available.")
+
+# Example of how to use the display_calories_leaderboard function at the bottom of the file
+'''
+if __name__ == "__main__":
+    # This block will only run when this file is executed directly
+    # For demonstration purposes, we'll mock the get_global_calories_list function
+    def mock_get_global_calories_list():
+        return [
+            ("Alice", 1500, "user_a"),
+            ("Bob", 1250, "user_b"),
+            ("Charlie", 1100, "user_c"),
+            ("David", 950, "user_d"),
+            ("Eve", 800, "user_e"),
+            ("Frank", 750, "user_f"),
+            ("Grace", 700, "user_g"),
+            ("Heidi", 650, "user_h"),
+            ("Ivan", 600, "user_i"),
+            ("Judy", 550, "user_j"),
+        ]
+
+    sl.title("Leaderboard Example")
+    display_calories_leaderboard_global(streamlit_module=sl, get_calories_func=mock_get_global_calories_list)
+    '''
+
+def display_friends_leaderboard(user_id, streamlit_module=sl, get_friends_calories=get_friends_calories_list):
+    """
+    Displays the leaderboard of the user and their friends based on total calories burned,
+    with the top 3 on a visual "pedestal".
+
+    Args:
+        user_id: The ID of the current user.
+        streamlit_module: The Streamlit module to use for display.
+        get_friends_calories: The function to fetch the sorted list of (name, calories, user_id) for the user and their friends.
+    """
+    friends_leaderboard_data = get_friends_calories(user_id)
+
+    if friends_leaderboard_data:
+        streamlit_module.subheader("👯 Friends' Calories Burned Leaderboard 👯")
+
+        top_3 = friends_leaderboard_data[:3]
+        remaining = friends_leaderboard_data[3:5]
+        pedestal_color = "#ADD8E6"  # Light blue color for the friends' pedestal
+
+        cols = streamlit_module.columns(3)
+
+        for i, (name, calories, friend_user_id) in enumerate(top_3):
+            with cols[i]:
+                rank_emoji = ""
+                if i == 0:
+                    rank_emoji = "🥇"
+                elif i == 1:
+                    rank_emoji = "🥈"
+                elif i == 2:
+                    rank_emoji = "🥉"
+
+                streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} <b>{name}</b></div>", unsafe_allow_html=True)
+                streamlit_module.markdown(f"<div style='text-align:center;'>{calories} calories</div>", unsafe_allow_html=True)
+                streamlit_module.markdown(
+                    f"<div style='text-align:center; background-color:{pedestal_color}; padding: 5px; border-radius: 5px; height: 10px;'></div>",
+                    unsafe_allow_html=True,
+                )
+
+        if remaining:
+            streamlit_module.markdown("---")
+            streamlit_module.subheader("Top Friends (4th & 5th)")
+            for i, (name, calories, friend_user_id) in enumerate(remaining):
+                streamlit_module.write(f"**{i + 4}. {name}:** {calories} calories")
+    else:
+        streamlit_module.info("No calorie data available for you or your friends to display the leaderboard.")
+
+    streamlit_module.markdown("---")
+    streamlit_module.subheader("Friends' Performance (Top 10)")
+    if friends_leaderboard_data:
+        for name, calories, friend_user_id in friends_leaderboard_data[:10]:
+            streamlit_module.write(f"**{name}:** {calories} calories burned")
+    else:
+        streamlit_module.write("No data available for your friends.")
+
+
+# Example of how to use the display_friends_leaderboard function at the bottom of the file
+'''
+if __name__ == "__main__":
+    # This block will only run when this file is executed directly
+    # For demonstration purposes, we'll mock the get_friends_calories_list function
+    def mock_get_friends_calories_list(user_id):
+        if user_id == "test_user":
+            return [
+                ("Test User", 1300, "test_user"),
+                ("Friend A", 1150, "friend_a"),
+                ("Friend B", 1000, "friend_b"),
+                ("Friend C", 900, "friend_c"),
+                ("Friend D", 780, "friend_d"),
+                ("Friend E", 700, "friend_e"),
+                ("Friend F", 650, "friend_f"),
+            ]
+        else:
+            return []
+
+    sl.title("Friends Leaderboard Example")
+    test_user_id = "test_user"
+    display_friends_leaderboard(user_id=test_user_id, streamlit_module=sl, get_friends_calories=mock_get_friends_calories_list)
+    '''
+
+def post_creation_box(user_id):
+
+    if "reset_post_form" in sl.session_state and sl.session_state.reset_post_form:
+        sl.session_state.post_text = ""
+        sl.session_state.post_image_url = ""
+        sl.session_state.reset_post_form = False
+
+    sl.subheader("🗨️ Create a Post")
+
+    post_text = sl.text_area("What's on your mind?", placeholder="Type your post here...", key="post_text")
+
+    include_image = sl.checkbox("Attach an image (via URL)?", key="include_image")
+    image_url = ""
+    if include_image:
+        image_url = sl.text_input("Image URL (optional)", key="post_image_url")
+    
+
+    if sl.button("Post"):
+        if not post_text.strip():
+            sl.warning("Post content cannot be empty.")
+            return
+
+        else:
+            insert_user_post(
+                user_id=user_id,
+                content=post_text,
+                image_url=image_url
+            )
+
+            sl.success("✅ Post created!")
+
+            sl.session_state.reset_post_form = True  # Flag triggers clearing on next run
+            sl.rerun()
+
+def add_friend_box(user_id):
+    sl.subheader("👥 Add a Friend")
+
+    all_users = get_all_users()
+    current_friends = get_user_friends(user_id)
+
+    # Filter out yourself and people you're already friends with
+    available_users = [
+        user for user in all_users
+        if user["id"] != user_id and user["id"] not in current_friends
+    ]
+
+    if not available_users:
+        sl.info("You're already friends with everyone!")
+        return
+
+    # Build display-friendly names for selection
+    user_display_map = {f'{u["name"]} ({u["username"]})': u["id"] for u in available_users}
+    selected_display = sl.selectbox("Select someone to add:", user_display_map.keys())
+    selected_id = user_display_map[selected_display]
+
+    if sl.button("Add Friend"):
+        add_friend(user_id, selected_id)
+        sl.success(f"✅ You added {selected_display} as a friend!")
+        get_user_friends.clear()
+        sl.rerun()

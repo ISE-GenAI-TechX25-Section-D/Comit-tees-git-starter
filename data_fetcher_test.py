@@ -12,7 +12,7 @@ import json
 from google.cloud.bigquery import Row
 from google.cloud import exceptions as google_exceptions
 from google.api_core import exceptions as google_exceptions
-from data_fetcher import get_user_workouts, get_user_sensor_data, get_genai_advice, get_user_posts, get_user_friends, get_user_info, get_user_profile, get_global_calories_list, set_user_password, get_user_password
+from data_fetcher import get_user_workouts, get_user_sensor_data, get_genai_advice, get_user_posts, get_user_friends, get_user_info, get_user_profile, get_global_calories_list, set_user_password, get_user_password, get_friends_calories_list
 from google.cloud import bigquery
 
 import vertexai
@@ -683,56 +683,40 @@ class TestGetGlobalCaloriesList(unittest.TestCase):
     @patch('google.cloud.bigquery.Client')
     def test_get_global_calories_list_success(self, mock_bigquery_client):
         """
-        Test that the function correctly processes query results and returns a sorted list of lists.
-        This test mocks the BigQuery client and query execution to return predefined data.
+        Test that the function correctly processes query results and returns a sorted list of tuples.
         """
-        # 1. Arrange (Set up our mocks and expected data)
-        # Create mock Row objects to simulate query results.  Crucially, these
-        # must have the attributes that the function tries to access.
-        mock_row1 = Mock(Name="Alice", TotalCalories=1200)
-        mock_row2 = Mock(Name="Bob", TotalCalories=800)
-        mock_row3 = Mock(Name="Charlie", TotalCalories=1500)
-        mock_results = [mock_row1, mock_row2, mock_row3]  #  A list of our mock Rows
+        # 1. Arrange
+        mock_row1 = Mock(Name="Alice", TotalCalories=1200, UserId="alice123")
+        mock_row2 = Mock(Name="Bob", TotalCalories=800, UserId="bob456")
+        mock_row3 = Mock(Name="Charlie", TotalCalories=1500, UserId="charlie789")
+        mock_results = [mock_row1, mock_row2, mock_row3]
 
-        # Create a mock QueryJob, and configure its .result() method to return
-        # our mock result set.
         mock_query_job = Mock()
         mock_query_job.result.return_value = mock_results
 
-        # Configure the mock BigQuery client.  When the function calls
-        # client.query(), we want it to return our mock QueryJob.
         mock_client = mock_bigquery_client.return_value
         mock_client.query.return_value = mock_query_job
 
-        # Define the expected output of the function.
         expected_output = [
-            ["Charlie", 1500],
-            ["Alice", 1200],
-            ["Bob", 800],
+            ("Charlie", 1500, "charlie789"),
+            ("Alice", 1200, "alice123"),
+            ("Bob", 800, "bob456"),
         ]
 
-        # 2. Act (Call the function we want to test)
-        # Call the function.  It will use our mock client, which will return
-        # our mock query results.
+        # 2. Act
         actual_output = get_global_calories_list()
 
-        # 3. Assert (Check that the output matches our expectations)
-        # Check that the function returns the data we expect.
+        # 3. Assert
         self.assertEqual(actual_output, expected_output)
-
-        # Also, verify that the client.query method was called
         mock_client.query.assert_called_once()
-
 
     @patch('google.cloud.bigquery.Client')
     def test_get_global_calories_list_limits_results(self, mock_bigquery_client):
         """
-        Test that the function limits the results to the top 10 users
-        when there are more than 10.
+        Test that the function limits the results to the top 10 users.
         """
         # 1. Arrange
-        # Create more than 10 mock rows
-        mock_rows = [Mock(Name=f"User{i}", TotalCalories=2000 - i * 100) for i in range(15)]
+        mock_rows = [Mock(Name=f"User{i}", TotalCalories=2000 - i * 100, UserId=f"user{i}") for i in range(15)]
 
         mock_query_job = Mock()
         mock_query_job.result.return_value = mock_rows
@@ -740,17 +724,16 @@ class TestGetGlobalCaloriesList(unittest.TestCase):
         mock_client = mock_bigquery_client.return_value
         mock_client.query.return_value = mock_query_job
 
-        # Expected output should be the top 10 users
         expected_output = [
-            [f"User{i}", 2000 - i * 100] for i in range(10)
+            (f"User{i}", 2000 - i * 100, f"user{i}") for i in range(10)
         ]
 
         # 2. Act
         actual_output = get_global_calories_list()
 
         # 3. Assert
-        self.assertEqual(len(actual_output), 10)  # Check the length
-        self.assertEqual(actual_output, expected_output) # Check the content
+        self.assertEqual(len(actual_output), 10)
+        self.assertEqual(actual_output, expected_output)
         mock_client.query.assert_called_once()
 
     @patch('google.cloud.bigquery.Client')
@@ -759,7 +742,6 @@ class TestGetGlobalCaloriesList(unittest.TestCase):
         Test that the function handles the case where the query returns no results.
         """
         # 1. Arrange
-        # Return an empty list to simulate no results
         mock_query_job = Mock()
         mock_query_job.result.return_value = []
 
@@ -781,28 +763,132 @@ class TestGetGlobalCaloriesList(unittest.TestCase):
         Test that the function uses the provided BigQuery client if one is given.
         """
         # 1. Arrange
-        # Create a mock client instance to pass in.
         provided_client = Mock()
 
-        mock_row1 = Mock(Name="David", TotalCalories=950)
+        mock_row1 = Mock(Name="David", TotalCalories=950, UserId="david111")
         mock_results = [mock_row1]
         mock_query_job = Mock()
         mock_query_job.result.return_value = mock_results
 
-        # Make the *mock instance* return our mock query job.
         provided_client.query.return_value = mock_query_job
 
-
-        expected_output = [["David", 950]]
+        expected_output = [("David", 950, "david111")]
 
         # 2. Act
         actual_output = get_global_calories_list(client=provided_client)
 
         # 3. Assert
         self.assertEqual(actual_output, expected_output)
-        # Assert that the function used the provided client.
         provided_client.query.assert_called_once()
-        # Also assert that the *mock class* was NOT called.
+        mock_bigquery_client.assert_not_called()
+
+class TestGetFriendsCaloriesList(unittest.TestCase):
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_friends_calories_list_success(self, mock_bigquery_client):
+        """
+        Test that the function correctly processes query results and returns a sorted list of tuples.
+        This test mocks the BigQuery client and query execution to return predefined data.
+        """
+        # 1. Arrange
+        mock_row_user = Mock(Name="User1", TotalCalories=1000, UserId="user1_id")
+        mock_row_friend1 = Mock(Name="Friend1", TotalCalories=1200, UserId="friend1_id")
+        mock_row_friend2 = Mock(Name="Friend2", TotalCalories=800, UserId="friend2_id")
+        mock_results = [mock_row_user, mock_row_friend1, mock_row_friend2]
+
+        mock_query_job = Mock()
+        mock_query_job.result.return_value = mock_results
+
+        mock_client = mock_bigquery_client.return_value
+        mock_client.query.return_value = mock_query_job
+
+        expected_output = [
+            ("Friend1", 1200, "friend1_id"),
+            ("User1", 1000, "user1_id"),
+            ("Friend2", 800, "friend2_id"),
+        ]
+
+        # 2. Act
+        actual_output = get_friends_calories_list(user_id='user1')
+
+        # 3. Assert
+        self.assertEqual(actual_output, expected_output)
+        mock_client.query.assert_called_once()
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_friends_calories_list_limits_results(self, mock_bigquery_client):
+        """
+        Test that the function limits the results to the top 10 users (including the main user).
+        """
+        # 1. Arrange
+        mock_row_user = Mock(Name="User1", TotalCalories=2000, UserId="user1_id")
+        mock_friends_rows = [Mock(Name=f"Friend{i}", TotalCalories=2000 - i * 100, UserId=f"friend{i}_id") for i in range(10)]
+        mock_results = [mock_row_user] + mock_friends_rows
+
+        mock_query_job = Mock()
+        mock_query_job.result.return_value = mock_results
+
+        mock_client = mock_bigquery_client.return_value
+        mock_client.query.return_value = mock_query_job
+
+        expected_output = [ ("User1", 2000, "user1_id"), ] + [(f"Friend{i}", 2000 - i * 100, f"friend{i}_id") for i in range(9)]
+        
+
+        # 2. Act
+        actual_output = get_friends_calories_list(user_id='user1')
+
+        # 3. Assert
+        self.assertEqual(len(actual_output), 10)
+        self.assertEqual(actual_output, expected_output)
+        mock_client.query.assert_called_once()
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_friends_calories_list_handles_empty_friends(self, mock_bigquery_client):
+        """
+        Test that the function handles the case where the user has no friends.
+        It should still return the user's calories.
+        """
+        # 1. Arrange
+        mock_row_user = Mock(Name="User1", TotalCalories=500, UserId="user1_id")
+        mock_results = [mock_row_user]
+        mock_query_job = Mock()
+        mock_query_job.result.return_value = mock_results
+
+        mock_client = mock_bigquery_client.return_value
+        mock_client.query.return_value = mock_query_job
+
+        expected_output = [("User1", 500, "user1_id")]
+
+        # 2. Act
+        actual_output = get_friends_calories_list(user_id='user1')
+
+        # 3. Assert
+        self.assertEqual(actual_output, expected_output)
+        mock_client.query.assert_called_once()
+
+    @patch('google.cloud.bigquery.Client')
+    def test_get_friends_calories_list_uses_provided_client(self, mock_bigquery_client):
+        """
+        Test that the function uses the provided BigQuery client if one is given.
+        """
+        # 1. Arrange
+        provided_client = Mock()
+
+        mock_row_user = Mock(Name="David", TotalCalories=950, UserId="david111")
+        mock_results = [mock_row_user]
+        mock_query_job = Mock()
+        mock_query_job.result.return_value = mock_results
+
+        provided_client.query.return_value = mock_query_job
+
+        expected_output = [("David", 950, "david111")]
+
+        # 2. Act
+        actual_output = get_friends_calories_list(user_id='user1', client=provided_client)
+
+        # 3. Assert
+        self.assertEqual(actual_output, expected_output)
+        provided_client.query.assert_called_once()
         mock_bigquery_client.assert_not_called()
 
 if __name__ == "__main__":
