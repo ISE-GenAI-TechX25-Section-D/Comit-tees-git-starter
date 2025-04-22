@@ -14,10 +14,13 @@ from community_page import display_community
 from auth_page import display_auth, logout
 from sidebar import display_sidebar
 from modules import post_creation_box, manual_workout_box, add_friend_box
+from leaderboard_page import render_leaderboards
 
 
 def display_app_page():
     """Displays the home page of the app."""
+
+    sl.set_page_config(layout="wide")
     
     if 'userId' not in sl.session_state:
         # sl.session_state.userId = 'user1'
@@ -37,8 +40,8 @@ def display_app_page():
 
     selected = option_menu(
         menu_title=None,  # Appears at top of sidebar
-        options=["Home", "Activities", "Community"],
-        icons=["house", "bar-chart", "heart"],  # Choose icons from https://icons.getbootstrap.com/
+        options=["Home", "Activities", "Community","LeaderBoards"],
+        icons=["house", "bar-chart", "heart","trophy"],  # Choose icons from https://icons.getbootstrap.com/
         default_index=0,
         menu_icon="cast",
         orientation="horizontal",
@@ -72,6 +75,10 @@ def display_app_page():
 
     elif selected == "Community":
         display_community(userId)
+    
+    
+    elif selected == "LeaderBoards":
+        render_leaderboards(userId)
     
     selected_action = display_sidebar(userId)
 

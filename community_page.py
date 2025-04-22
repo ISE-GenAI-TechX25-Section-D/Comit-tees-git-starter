@@ -1,6 +1,6 @@
 import streamlit as sl
-from modules import display_my_custom_component, display_post, display_genai_advice, display_calories_leaderboard_global, display_friends_leaderboard,post_creation_box, add_friend_box
-from data_fetcher import get_user_posts, get_user_profile, get_genai_advice, get_user_friends,get_friends_calories_list,get_global_calories_list, insert_user_post
+from modules import display_my_custom_component, display_post, display_genai_advice, display_global_leaderboard, display_friends_leaderboard,post_creation_box, add_friend_box
+from data_fetcher import get_user_posts, get_user_profile, get_genai_advice, get_user_friends,get_friends_calories_list,get_global_calories_list, insert_user_post, get_global_distance_list, get_global_steps_list, get_friends_distance_list, get_friends_steps_list
 
 def display_community(user_id):
 
@@ -9,13 +9,13 @@ def display_community(user_id):
     
     sl.subheader(f" {user_profile['full_name']}'s")
 
-    tab1, tab2, tab3, tab4 = sl.tabs(["👥 Friends' Posts", "GenAI Advice", "👤 My Posts", "🏆 Leaderboards"])
+    tab1, tab2, tab3 = sl.tabs(["👥 Friends' Posts", "GenAI Advice", "👤 My Posts"])
 
     with tab1:
+        add_friend_box(user_id)
         if len(get_user_friends(user_id)) <= 0:
             sl.info("You haven't added any friends yet!")
         else:
-            add_friend_box(user_id)
             sl.markdown("---")
             display_post(user_id)
 
@@ -41,13 +41,4 @@ def display_community(user_id):
                 sl.markdown("---")
         else:
             sl.info("You haven't posted anything yet.")
-
-    with tab4:
-        sl.markdown("---")
-        sl.subheader("🏆 Leaderboards")
-        leaderboard_type = sl.radio("Select Leaderboard:", ["Global", "Friends"])
-
-        if leaderboard_type == "Global":
-            display_calories_leaderboard_global(streamlit_module=sl)
-        elif leaderboard_type == "Friends":
-            display_friends_leaderboard(user_id=user_id, streamlit_module=sl)
+        
