@@ -7,7 +7,7 @@
 
 import streamlit as sl
 from modules import display_my_custom_component, display_post, display_genai_advice, display_activity_summary, display_recent_workouts
-from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get_user_sensor_data, get_user_workouts
+from data_fetcher import get_user_posts, get_genai_advice, get_user_profile, get_user_sensor_data, get_user_workouts,get_user_friends
 from streamlit_option_menu import option_menu
 from activity_page import display_activity_page
 from community_page import display_community
@@ -30,7 +30,7 @@ def display_app_page():
     user_profile = get_user_profile(userId)
     user_name = user_profile['username']
 
-    friends = user_profile['friends']
+    friends = get_user_friends(userId)
     friend_profiles = [get_user_profile(fid) for fid in friends]
     friend_names = [p['full_name'] for p in friend_profiles]
     friend_usernames = [p['username'] for p in friend_profiles]
