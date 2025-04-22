@@ -690,3 +690,51 @@ def username_exists(username, query_db=bigquery):
     row = next(result)
 
     return row.count > 0
+
+def insert_workout(user_id, start, end, distance, steps, calories, query_db=bigquery):
+    client = query_db.Client()
+    table_id = "diegoperez16techx25.Committees.Workouts"
+
+    def get_next_workout_id():
+        query = f"""
+            SELECT MAX(CAST(REGEXP_EXTRACT(WorkoutId, r'workout(\\d+)') AS INT64)) AS max_id
+            FROM `{table_id}`
+            WHERE REGEXP_CONTAINS(WorkoutId, r'^workout\\d+$')
+        """
+        result = client.query(query).result()
+        row = next(result)
+        return f"workout{(row.max_id + 1) if row.max_id else 1}"
+
+    workout_id = get_next_workout_id()
+
+    # Convert Python datetime to DATETIME string format
+    start_str = start.strftime('%Y-%m-%d %H:%M:%S')
+    end_str = end.strftime('%Y-%m-%d %H:%M:%S')
+
+    query = f"""
+        INSERT INTO `{table_id}` (WorkoutId, UserId, StartTimestamp, EndTimestamp, TotalDistance, TotalSteps, CaloriesBurned)
+        VALUES (
+            @workout_id,
+            @user_id,
+            @start,
+            @end,
+            @distance,
+            @steps,
+            @calories
+        )
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("workout_id", "STRING", workout_id),
+            bigquery.ScalarQueryParameter("user_id", "STRING", user_id),
+            bigquery.ScalarQueryParameter("start", "DATETIME", start_str),
+            bigquery.ScalarQueryParameter("end", "DATETIME", end_str),
+            bigquery.ScalarQueryParameter("distance", "FLOAT64", distance),
+            bigquery.ScalarQueryParameter("steps", "INT64", steps),
+            bigquery.ScalarQueryParameter("calories", "FLOAT64", calories),
+        ]
+    )
+
+    client.query(query, job_config=job_config).result()
+
