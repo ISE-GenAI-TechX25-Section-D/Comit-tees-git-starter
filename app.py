@@ -12,6 +12,8 @@ from streamlit_option_menu import option_menu
 from activity_page import display_activity_page
 from community_page import display_community
 from auth_page import display_auth, logout
+from sidebar import display_sidebar
+from modules import post_creation_box, manual_workout_box
 
 
 def display_app_page():
@@ -68,6 +70,17 @@ def display_app_page():
 
     elif selected == "Community":
         display_community(userId)
+    
+    selected_action = display_sidebar(userId)
+
+    if selected_action == "Create Post":
+        post_creation_box(userId)
+
+    elif selected_action == "Add Workout":
+        manual_workout_box()
+
+    elif selected_action == "Add Friend (coming soon)":
+        sl.info("👥 Friend feature is on the way!")
     
     sl.markdown("---")
     if sl.button("🚪 Log Out"):
