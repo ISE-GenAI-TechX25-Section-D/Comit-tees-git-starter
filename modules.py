@@ -14,6 +14,7 @@ from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
 from datetime import datetime, date
+import bcrypt
 
 # This one has been written for you as an example. You may change it as wanted.
 def display_my_custom_component(value):
@@ -226,14 +227,18 @@ def display_genai_advice(
     
     streamlit_module.caption(f"Last updated: {timestamp}")
 
+import bcrypt  # 🔐 Add this at the top of your file
+
 def login_box():
+    def check_password(plain_password, hashed_password):
+        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+
     sl.subheader("🔐 Login")
 
     username = sl.text_input("Username")
     password = sl.text_input("Password", type="password")
 
     login_button = sl.button("Log In")
-
 
     if login_button:
         if not username or not password:
@@ -248,25 +253,24 @@ def login_box():
             sl.error("User not found.")
             return False
 
-        if password != expected_password:
+        if not check_password(password, expected_password):
             sl.error("Incorrect password.")
             return False
 
         sl.success(f"Welcome back, {user_info['full_name']}!")
         sl.session_state.userId = userID
         sl.rerun()
-        return True  # Can be used to set session state or display more info
+        return True
 
     return None
+
 
 def signup_box():
     sl.subheader("📝 Sign Up")
 
-    # Check for submitted state
     if "signup_submitted" not in sl.session_state:
         sl.session_state.signup_submitted = False
 
-    # If already submitted, show success and login button
     if sl.session_state.signup_submitted:
         sl.success("✅ Account created successfully!")
         if sl.button("Go to Login"):
@@ -278,10 +282,10 @@ def signup_box():
     first_name = sl.text_input("First Name")
     last_name = sl.text_input("Last Name")
     dob = sl.date_input(
-    "Date of Birth",
-    value=date(2000, 1, 1),
-    min_value=date(1900, 1, 1),
-    max_value=datetime.today().date()
+        "Date of Birth",
+        value=date(2000, 1, 1),
+        min_value=date(1900, 1, 1),
+        max_value=datetime.today().date()
     )
     username = sl.text_input("Username")
     image_url = sl.text_input("Profile Image URL (optional)")
@@ -291,7 +295,6 @@ def signup_box():
     signup_button = sl.button("Create Account")
 
     if signup_button:
-        # Validate required fields
         if not all([first_name, last_name, dob, username, password, confirm_password]):
             sl.warning("Please fill in all required fields.")
             return None
@@ -304,6 +307,9 @@ def signup_box():
             sl.error("Username already taken.")
             return None
 
+
+        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode('utf-8')
+
         full_name = f"{first_name} {last_name}"
 
         create_new_user(
@@ -311,8 +317,7 @@ def signup_box():
             name=full_name,
             image_url=image_url,
             date_of_birth=str(dob),
-            password=password
-            
+            password=hashed_password  
         )
 
         sl.success("Account created! You can now log in.")
