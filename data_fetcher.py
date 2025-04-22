@@ -777,17 +777,20 @@ def create_new_user(username, name, image_url, date_of_birth, password, query_db
     
     user_id = get_next_user_id()
     
+    escaped_name = name.replace("'", "''") 
+
     query = f"""
         INSERT INTO `diegoperez16techx25.Committees.Users` (UserId, Name, Username, ImageUrl, DateOfBirth, Password)
         VALUES (
             '{user_id}',
-            '{name.replace("'", "\\'")}',
+            '{escaped_name}',
             '{username}',
             '{image_url}',
             DATE '{date_of_birth}',
             '{password}'
         )
     """
+
 
     client.query(query).result()
 
