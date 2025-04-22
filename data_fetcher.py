@@ -640,6 +640,127 @@ def get_friends_calories_list(user_id, client: bigquery.Client= None):
         sorted_friends_calories_list = sorted_friends_calories_list[:10]
     return sorted_friends_calories_list
 
+def get_global_distance_list(client: bigquery.Client = None):
+    if client is None:
+        client = bigquery.Client()
+    query = client.query('''
+    SELECT
+      Users.Name,
+      SUM(Workouts.TotalDistance) AS TotalDistance,
+      Users.UserId
+    FROM
+      `diegoperez16techx25`.`Committees`.`Users` AS Users
+    INNER JOIN
+      `diegoperez16techx25`.`Committees`.`Workouts` AS Workouts
+    ON
+      Users.UserId = Workouts.UserId
+    GROUP BY
+      1, 3
+    ''')
+    results = query.result()
+    distance_list = [(row.Name, float(row.TotalDistance), row.UserId) for row in results]
+    sorted_list = sorted(distance_list, key=lambda item: item[1], reverse=True)
+    return sorted_list[:10]
+
+def get_friends_distance_list(user_id, client: bigquery.Client = None):
+    if client is None:
+        client = bigquery.Client()
+    query = client.query(f'''
+    SELECT
+    Users.Name,
+    SUM(Workouts.TotalDistance) AS TotalDistance,
+    Users.UserId
+    FROM
+    `diegoperez16techx25`.Committees.Users
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Users.UserId = '{user_id}'
+    GROUP BY
+    1, 3
+
+    UNION ALL
+
+    SELECT
+    Users.Name,
+    SUM(Workouts.TotalDistance) AS TotalDistance,
+    Users.UserId
+    FROM
+    `diegoperez16techx25`.Committees.Users AS Users
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Friends AS Friends ON Users.UserId = Friends.friend_id
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Workouts AS Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Friends.user_id = '{user_id}'
+    GROUP BY
+    1, 3
+    ''')
+    results = query.result()
+    distance_list = [(row.Name, float(row.TotalDistance), row.UserId) for row in results]
+    sorted_list = sorted(distance_list, key=lambda item: item[1], reverse=True)
+    return sorted_list[:10]
+
+def get_global_steps_list(client: bigquery.Client = None):
+    if client is None:
+        client = bigquery.Client()
+    query = client.query('''
+    SELECT
+      Users.Name,
+      SUM(Workouts.TotalSteps) AS TotalSteps,
+      Users.UserId
+    FROM
+      `diegoperez16techx25`.`Committees`.`Users` AS Users
+    INNER JOIN
+      `diegoperez16techx25`.`Committees`.`Workouts` AS Workouts
+    ON
+      Users.UserId = Workouts.UserId
+    GROUP BY
+      1, 3
+    ''')
+    results = query.result()
+    steps_list = [(row.Name, int(row.TotalSteps), row.UserId) for row in results]
+    sorted_list = sorted(steps_list, key=lambda item: item[1], reverse=True)
+    return sorted_list[:10]
+
+def get_friends_steps_list(user_id, client: bigquery.Client = None):
+    if client is None:
+        client = bigquery.Client()
+    query = client.query(f'''
+    SELECT
+    Users.Name,
+    SUM(Workouts.TotalSteps) AS TotalSteps,
+    Users.UserId
+    FROM
+    `diegoperez16techx25`.Committees.Users
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Users.UserId = '{user_id}'
+    GROUP BY
+    1, 3
+
+    UNION ALL
+
+    SELECT
+    Users.Name,
+    SUM(Workouts.TotalSteps) AS TotalSteps,
+    Users.UserId
+    FROM
+    `diegoperez16techx25`.Committees.Users AS Users
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Friends AS Friends ON Users.UserId = Friends.friend_id
+    INNER JOIN
+    `diegoperez16techx25`.Committees.Workouts AS Workouts ON Users.UserId = Workouts.UserId
+    WHERE
+    Friends.user_id = '{user_id}'
+    GROUP BY
+    1, 3
+    ''')
+    results = query.result()
+    steps_list = [(row.Name, int(row.TotalSteps), row.UserId) for row in results]
+    sorted_list = sorted(steps_list, key=lambda item: item[1], reverse=True)
+    return sorted_list[:10]
 
 
 def create_new_user(username, name, image_url, date_of_birth, password, query_db=bigquery, execute_query=None):

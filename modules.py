@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_all_users, add_friend, insert_user_post, get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
+from data_fetcher import get_friends_steps_list, get_friends_distance_list, get_friends_calories_list, get_all_users, add_friend, insert_user_post, get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
@@ -417,115 +417,91 @@ def manual_workout_box():
         sl.session_state.workout_submitted = True
         sl.rerun()
 
-def display_calories_leaderboard_global(streamlit_module=sl, get_calories_func=get_global_calories_list):
-    """
-    Displays the global leaderboard of users based on total calories burned,
-    with the top 3 on a visual "pedestal".
+def display_global_leaderboard(metric="calories", streamlit_module=sl, get_leaderboard_func=None):
+    metric_title = {
+        "calories": "🔥 Calories Burned",
+        "distance": "↔️ Distance Covered",
+        "steps": "🚶 Steps Taken"
+    }
 
-    Args:
-        streamlit_module: The Streamlit module to use for display.
-        get_calories_func: The function to fetch the sorted list of (name, calories, user_id).
-    """
-    leaderboard_data = get_calories_func()
+    leaderboard_data = get_leaderboard_func() if get_leaderboard_func else []
 
     if leaderboard_data:
-        streamlit_module.subheader("🔥 Global Calories Burned Leaderboard 🔥")
+        streamlit_module.subheader(f"{metric_title[metric]} Leaderboard 🌍")
 
         top_3 = leaderboard_data[:3]
         remaining = leaderboard_data[3:5]
 
         cols = streamlit_module.columns(3)
-        pedestal_color = "#D3D3D3"  # Light gray color for the pedestal
-
-        for i, (name, calories, user_id) in enumerate(top_3):
+        for i, (name, value, user_id) in enumerate(top_3):
             with cols[i]:
-                rank_emoji = ""
-                if i == 0:
-                    rank_emoji = "🥇"
-                elif i == 1:
-                    rank_emoji = "🥈"
-                elif i == 2:
-                    rank_emoji = "🥉"
-
+                rank_emoji = ["🥇", "🥈", "🥉"][i]
                 streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} <b>{name}</b></div>", unsafe_allow_html=True)
-                streamlit_module.markdown(f"<div style='text-align:center;'>{calories} calories</div>", unsafe_allow_html=True)
-                streamlit_module.markdown(
-                    f"<div style='text-align:center; background-color:{pedestal_color}; padding: 5px; border-radius: 5px;'></div>",
-                    unsafe_allow_html=True,
-                )
+                streamlit_module.markdown(f"<div style='text-align:center;'>{value} {metric}</div>", unsafe_allow_html=True)
+                streamlit_module.markdown("<div style='text-align:center; background-color:#D3D3D3; height: 10px;'></div>", unsafe_allow_html=True)
 
         if remaining:
             streamlit_module.markdown("---")
-            streamlit_module.subheader("Top Performers (4th & 5th)")
-            for i, (name, calories, user_id) in enumerate(remaining):
-                streamlit_module.write(f"**{i + 4}. {name}:** {calories} calories")
+            for i, (name, value, _) in enumerate(remaining):
+                streamlit_module.write(f"**{i + 4}. {name}:** {value} {metric}")
+
+        streamlit_module.markdown("---")
+        streamlit_module.subheader("Top 10 Overall")
+        for name, value, _ in leaderboard_data[:10]:
+            streamlit_module.write(f"**{name}:** {value} {metric}")
     else:
-        streamlit_module.info("No calorie data available to display the leaderboard.")
+        streamlit_module.info(f"No {metric} data available to display the leaderboard.")
 
-    streamlit_module.markdown("---")
-    streamlit_module.subheader("All Participants (Top 10)")
-    if leaderboard_data:
-        for name, calories, user_id in leaderboard_data[:10]:
-            streamlit_module.write(f"**{name}:** {calories} calories burned")
-    else:
-        streamlit_module.write("No data available.")
 
-# Example of how to use the display_calories_leaderboard function at the bottom of the file
-'''
-if __name__ == "__main__":
-    # This block will only run when this file is executed directly
-    # For demonstration purposes, we'll mock the get_global_calories_list function
-    def mock_get_global_calories_list():
-        return [
-            ("Alice", 1500, "user_a"),
-            ("Bob", 1250, "user_b"),
-            ("Charlie", 1100, "user_c"),
-            ("David", 950, "user_d"),
-            ("Eve", 800, "user_e"),
-            ("Frank", 750, "user_f"),
-            ("Grace", 700, "user_g"),
-            ("Heidi", 650, "user_h"),
-            ("Ivan", 600, "user_i"),
-            ("Judy", 550, "user_j"),
-        ]
-
-    sl.title("Leaderboard Example")
-    display_calories_leaderboard_global(streamlit_module=sl, get_calories_func=mock_get_global_calories_list)
-    '''
-
-def display_friends_leaderboard(user_id, streamlit_module=sl, get_friends_calories=get_friends_calories_list):
+def display_friends_leaderboard(
+    user_id,
+    streamlit_module=sl,
+    get_friends_funcs={
+        "calories": get_friends_calories_list,
+        "distance": get_friends_distance_list,
+        "steps": get_friends_steps_list
+    }
+):
     """
-    Displays the leaderboard of the user and their friends based on total calories burned,
-    with the top 3 on a visual "pedestal".
+    Displays the leaderboard of the user and their friends based on a selected metric
+    (calories, distance, or steps), with a top 3 podium and top 10 ranking.
 
     Args:
         user_id: The ID of the current user.
         streamlit_module: The Streamlit module to use for display.
-        get_friends_calories: The function to fetch the sorted list of (name, calories, user_id) for the user and their friends.
+        get_friends_funcs: Dict of metric → fetch function.
     """
-    friends_leaderboard_data = get_friends_calories(user_id)
 
-    if friends_leaderboard_data:
-        streamlit_module.subheader("👯 Friends' Calories Burned Leaderboard 👯")
+    # 🧭 Let the user choose which stat to rank
+    metric = streamlit_module.radio(
+        "🏆 Choose category:",
+        ["calories", "distance", "steps"],
+        horizontal=True,
+        key="friend_leaderboard_metric"
+    )
 
-        top_3 = friends_leaderboard_data[:3]
-        remaining = friends_leaderboard_data[3:5]
-        pedestal_color = "#ADD8E6"  # Light blue color for the friends' pedestal
+    metric_title = {
+        "calories": "🔥 Calories Burned",
+        "distance": "↔️ Distance Covered (mi)",
+        "steps": "🚶 Steps Taken"
+    }
 
+    # 🔍 Fetch leaderboard data
+    leaderboard_data = get_friends_funcs[metric](user_id)
+
+    if leaderboard_data:
+        streamlit_module.subheader(f"👯 Friends' {metric_title[metric]} Leaderboard")
+
+        top_3 = leaderboard_data[:3]
+        remaining = leaderboard_data[3:5]
         cols = streamlit_module.columns(3)
+        pedestal_color = "#ADD8E6"
 
-        for i, (name, calories, friend_user_id) in enumerate(top_3):
+        for i, (name, value, friend_user_id) in enumerate(top_3):
             with cols[i]:
-                rank_emoji = ""
-                if i == 0:
-                    rank_emoji = "🥇"
-                elif i == 1:
-                    rank_emoji = "🥈"
-                elif i == 2:
-                    rank_emoji = "🥉"
-
+                rank_emoji = ["🥇", "🥈", "🥉"][i]
                 streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} <b>{name}</b></div>", unsafe_allow_html=True)
-                streamlit_module.markdown(f"<div style='text-align:center;'>{calories} calories</div>", unsafe_allow_html=True)
+                streamlit_module.markdown(f"<div style='text-align:center;'>{value} {metric}</div>", unsafe_allow_html=True)
                 streamlit_module.markdown(
                     f"<div style='text-align:center; background-color:{pedestal_color}; padding: 5px; border-radius: 5px; height: 10px;'></div>",
                     unsafe_allow_html=True,
@@ -534,43 +510,16 @@ def display_friends_leaderboard(user_id, streamlit_module=sl, get_friends_calori
         if remaining:
             streamlit_module.markdown("---")
             streamlit_module.subheader("Top Friends (4th & 5th)")
-            for i, (name, calories, friend_user_id) in enumerate(remaining):
-                streamlit_module.write(f"**{i + 4}. {name}:** {calories} calories")
+            for i, (name, value, _) in enumerate(remaining):
+                streamlit_module.write(f"**{i + 4}. {name}:** {value} {metric}")
+
+        streamlit_module.markdown("---")
+        streamlit_module.subheader("Friends' Performance (Top 10)")
+        for name, value, _ in leaderboard_data[:10]:
+            streamlit_module.write(f"**{name}:** {value} {metric}")
     else:
-        streamlit_module.info("No calorie data available for you or your friends to display the leaderboard.")
+        streamlit_module.info(f"No {metric} data available to display the leaderboard.")
 
-    streamlit_module.markdown("---")
-    streamlit_module.subheader("Friends' Performance (Top 10)")
-    if friends_leaderboard_data:
-        for name, calories, friend_user_id in friends_leaderboard_data[:10]:
-            streamlit_module.write(f"**{name}:** {calories} calories burned")
-    else:
-        streamlit_module.write("No data available for your friends.")
-
-
-# Example of how to use the display_friends_leaderboard function at the bottom of the file
-'''
-if __name__ == "__main__":
-    # This block will only run when this file is executed directly
-    # For demonstration purposes, we'll mock the get_friends_calories_list function
-    def mock_get_friends_calories_list(user_id):
-        if user_id == "test_user":
-            return [
-                ("Test User", 1300, "test_user"),
-                ("Friend A", 1150, "friend_a"),
-                ("Friend B", 1000, "friend_b"),
-                ("Friend C", 900, "friend_c"),
-                ("Friend D", 780, "friend_d"),
-                ("Friend E", 700, "friend_e"),
-                ("Friend F", 650, "friend_f"),
-            ]
-        else:
-            return []
-
-    sl.title("Friends Leaderboard Example")
-    test_user_id = "test_user"
-    display_friends_leaderboard(user_id=test_user_id, streamlit_module=sl, get_friends_calories=mock_get_friends_calories_list)
-    '''
 
 def post_creation_box(user_id):
 
