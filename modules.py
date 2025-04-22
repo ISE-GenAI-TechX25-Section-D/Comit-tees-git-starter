@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
+from data_fetcher import insert_user_post, get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list, insert_sensor_data
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
@@ -573,3 +573,37 @@ if __name__ == "__main__":
     test_user_id = "test_user"
     display_friends_leaderboard(user_id=test_user_id, streamlit_module=sl, get_friends_calories=mock_get_friends_calories_list)
     '''
+
+def post_creation_box(user_id):
+
+    if "reset_post_form" in sl.session_state and sl.session_state.reset_post_form:
+        sl.session_state.post_text = ""
+        sl.session_state.post_image_url = ""
+        sl.session_state.reset_post_form = False
+
+    sl.subheader("🗨️ Create a Post")
+
+    post_text = sl.text_area("What's on your mind?", placeholder="Type your post here...", key="post_text")
+
+    include_image = sl.checkbox("Attach an image (via URL)?", key="include_image")
+    image_url = ""
+    if include_image:
+        image_url = sl.text_input("Image URL (optional)", key="post_image_url")
+    
+
+    if sl.button("Post"):
+        if not post_text.strip():
+            sl.warning("Post content cannot be empty.")
+            return
+
+        else:
+            insert_user_post(
+                user_id=user_id,
+                content=post_text,
+                image_url=image_url
+            )
+
+            sl.success("✅ Post created!")
+
+            sl.session_state.reset_post_form = True  # Flag triggers clearing on next run
+            sl.rerun()
