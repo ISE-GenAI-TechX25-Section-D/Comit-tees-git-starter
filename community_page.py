@@ -1,5 +1,5 @@
 import streamlit as sl
-from modules import display_my_custom_component, display_post, display_genai_advice, display_calories_leaderboard_global, display_friends_leaderboard,post_creation_box
+from modules import display_my_custom_component, display_post, display_genai_advice, display_calories_leaderboard_global, display_friends_leaderboard,post_creation_box, add_friend_box
 from data_fetcher import get_user_posts, get_user_profile, get_genai_advice, get_user_friends,get_friends_calories_list,get_global_calories_list, insert_user_post
 
 def display_community(user_id):
@@ -15,6 +15,8 @@ def display_community(user_id):
         if len(get_user_friends(user_id)) <= 0:
             sl.info("You haven't added any friends yet!")
         else:
+            add_friend_box(user_id)
+            sl.markdown("---")
             display_post(user_id)
 
     with tab2:

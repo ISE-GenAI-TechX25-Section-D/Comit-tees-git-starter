@@ -21,15 +21,29 @@ def display_activity_page(user_id="user1"):
         reverse=True
     )
 
-    # Get the 3 most recent
-    recent_workouts = sorted_workouts[:3]
+    # Let the user choose how many workouts to display
+    view_mode = sl.radio(
+        "View Mode:",
+        ["3 Most Recent", "All Workouts"],
+        key="workout_view_mode",
+        horizontal=True
+    )
+
+    if view_mode == "3 Most Recent":
+        recent_workouts = sorted_workouts[:3]
+    else:
+        recent_workouts = sorted_workouts
 
     with sl.expander("➕ Add Workout Manually"):
         manual_workout_box()
     
     sl.markdown("---")
 
-    sl.write('This only displays the 3 most recent workouts.')
+    sl.caption(
+    "Showing only the 3 most recent workouts." if view_mode == "3 Most Recent"
+    else f"Showing all {len(recent_workouts)} workouts."
+    )
+
 
     sl.markdown("---")
 
@@ -50,11 +64,11 @@ def side_view(user_id, workouts_list):
         return
 
     with left_col:
-        # Developed with GPT 4o
         display_recent_workouts(
             user_id,
-            workouts_func=lambda uid: sorted(get_user_workouts(uid), key=lambda w: w['start_timestamp'], reverse=True)[:3]
+            workouts_func=lambda uid: workouts_list
         )
+
 
     with right_col:
         
