@@ -1,6 +1,6 @@
 import streamlit as sl
 from data_fetcher import get_user_workouts, insert_user_post,get_user_sensor_data
-from modules import display_activity_summary, display_recent_workouts
+from modules import display_activity_summary, display_recent_workouts,manual_workout_box
 from datetime import datetime
 import pandas as pd
 from google.cloud import bigquery
@@ -24,6 +24,15 @@ def display_activity_page(user_id="user1"):
     # Get the 3 most recent
     recent_workouts = sorted_workouts[:3]
 
+    with sl.expander("➕ Add Workout Manually"):
+        manual_workout_box()
+    
+    sl.markdown("---")
+
+    sl.write('This only displays the 3 most recent workouts.')
+
+    sl.markdown("---")
+
     side_view(user_id, recent_workouts)
 
     total_distance = sl.session_state.get("total_distance", 0)
@@ -32,17 +41,23 @@ def display_activity_page(user_id="user1"):
 
     handle_share_section(user_id, workouts, recent_workouts)
 
+
 def side_view(user_id, workouts_list):
     left_col, right_col = sl.columns(2)
 
+    if not workouts_list:
+        sl.info("No recent workouts to display.")
+        return
+
     with left_col:
-        # Developeed with GPT 4o
+        # Developed with GPT 4o
         display_recent_workouts(
             user_id,
             workouts_func=lambda uid: sorted(get_user_workouts(uid), key=lambda w: w['start_timestamp'], reverse=True)[:3]
         )
 
     with right_col:
+        
         display_activity_summary(workouts_list)
         sl.markdown(" ")
         sl.markdown("---")

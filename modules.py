@@ -9,7 +9,7 @@
 
 import streamlit as sl
 from internals import create_component
-from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists, get_global_calories_list, get_friends_calories_list
+from data_fetcher import get_user_workouts, get_user_posts, users, get_genai_advice, get_user_friends, get_user_info, get_user_password,get_user_ID_from_username,create_new_user, username_exists,insert_workout, get_global_calories_list, get_friends_calories_list
 from PIL import Image
 import pandas as pd
 from google.cloud import bigquery
@@ -89,13 +89,12 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
         workouts_list = fetcher()
 
     sl.title("🏋️ Activity Fitness Summary")
+
     
     # workout_options = ["Running", "Full Body", "Chest", "Cardio", "Back"] # Using list when workout types are available
 
     workout_options = ["Running"]
 
-    if 'workouts_list' not in sl.session_state:
-            sl.session_state.workouts_list = workouts_list
     
     if "selected_workout" not in sl.session_state:
         sl.session_state.selected_workout = workout_options[0]
@@ -106,7 +105,7 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     if workout_type != sl.session_state.selected_workout:
         sl.session_state.selected_workout = workout_type
     
-    workouts = sl.session_state.workouts_list
+    workouts = workouts_list
 
     # Summary metrics
   
@@ -133,8 +132,13 @@ def display_activity_summary(workouts_list=None, fetcher=None): # fetcher = depe
     # Workout Details Table
     sl.subheader("Workout Details")
     df = pd.DataFrame(workouts)
+
+    df_display = df.copy()
+
+    df_display = df_display.drop(columns=["start_lat_lng", "end_lat_lng"], errors="ignore")
+
     # Line written by ChatGPT
-    df_display = df[["distance", "steps", "calories_burned"]].rename(columns={
+    df_display = df_display[["distance", "steps", "calories_burned"]].rename(columns={
     "distance": "Distance (mi)",
     "steps": "Steps Taken",
     "calories_burned": "Calories Burned"
@@ -318,6 +322,55 @@ def signup_box():
         sl.rerun()
 
     return None
+
+def manual_workout_box():
+    sl.subheader("🏃 Add Workout Manually")
+
+    if "workout_submitted" not in sl.session_state:
+        sl.session_state.workout_submitted = False
+
+    if sl.session_state.workout_submitted:
+        sl.success("Workout added successfully!")
+        if sl.button("Add Another Workout"):
+            sl.session_state.workout_submitted = False
+            sl.rerun()
+        return
+
+    start_time = sl.time_input("Start Time")
+    end_time = sl.time_input("End Time")
+    date = sl.date_input("Date")
+
+    distance = sl.number_input("Total Distance (miles)", min_value=0.0, format="%.2f")
+    steps = sl.number_input("Total Steps", min_value=0)
+    calories = sl.number_input("Calories Burned", min_value=0.0, format="%.2f")
+
+    if sl.button("Add Workout"):
+        if start_time >= end_time:
+            sl.error("End time must be after start time.")
+            return
+
+        if 'userId' not in sl.session_state:
+            sl.error("You're not logged in.")
+            return
+
+        start_timestamp = datetime.combine(date, start_time)
+        end_timestamp = datetime.combine(date, end_time)
+
+        insert_workout(
+            user_id=sl.session_state.userId,
+            start=start_timestamp,
+            end=end_timestamp,
+            distance=distance,
+            steps=steps,
+            calories=calories
+        )
+
+        sl.success("✅ Workout added!")
+
+        get_user_workouts.clear()
+
+        sl.session_state.workout_submitted = True
+        sl.rerun()
 
 def display_calories_leaderboard_global(streamlit_module=sl, get_calories_func=get_global_calories_list):
     """
