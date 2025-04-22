@@ -9,13 +9,13 @@ def display_community(user_id):
     
     sl.subheader(f" {user_profile['full_name']}'s")
 
-    tab1, tab2, tab3, tab4 = sl.tabs(["👥 Friends' Posts", "GenAI Advice", "👤 My Posts", "🏆 Leaderboards"])
+    tab1, tab2, tab3 = sl.tabs(["👥 Friends' Posts", "GenAI Advice", "👤 My Posts"])
 
     with tab1:
+        add_friend_box(user_id)
         if len(get_user_friends(user_id)) <= 0:
             sl.info("You haven't added any friends yet!")
         else:
-            add_friend_box(user_id)
             sl.markdown("---")
             display_post(user_id)
 
@@ -41,28 +41,4 @@ def display_community(user_id):
                 sl.markdown("---")
         else:
             sl.info("You haven't posted anything yet.")
-
-    with tab4:
-        sl.markdown("---")
-        sl.subheader("🏆 Leaderboards")
-
-        leaderboard_type = sl.radio("Select Leaderboard:", ["Global", "Friends"], horizontal=True)
-        metric = sl.radio("Choose Category:", ["calories", "distance", "steps"], horizontal=True)
-
-        # Map metrics to fetch functions
-        global_funcs = {
-            "calories": get_global_calories_list,
-            "distance": get_global_distance_list,
-            "steps": get_global_steps_list
-        }
-
-        friends_funcs = {
-            "calories": get_friends_calories_list,
-            "distance": get_friends_distance_list,
-            "steps": get_friends_steps_list
-        }
-
-        if leaderboard_type == "Global":
-            display_global_leaderboard(metric=metric, streamlit_module=sl, get_leaderboard_func=global_funcs[metric])
-        elif leaderboard_type == "Friends":
-            display_friends_leaderboard(user_id=user_id, streamlit_module=sl, get_friends_funcs=friends_funcs)
+        

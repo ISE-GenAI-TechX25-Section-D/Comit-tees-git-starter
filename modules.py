@@ -417,7 +417,12 @@ def manual_workout_box():
         sl.session_state.workout_submitted = True
         sl.rerun()
 
-def display_global_leaderboard(metric="calories", streamlit_module=sl, get_leaderboard_func=None):
+def display_global_leaderboard(
+    metric="calories",
+    streamlit_module=sl,
+    get_leaderboard_func=None,
+    highlight_user_id=None
+):
     metric_title = {
         "calories": "🔥 Calories Burned",
         "distance": "↔️ Distance Covered",
@@ -436,25 +441,35 @@ def display_global_leaderboard(metric="calories", streamlit_module=sl, get_leade
         for i, (name, value, user_id) in enumerate(top_3):
             with cols[i]:
                 rank_emoji = ["🥇", "🥈", "🥉"][i]
-                streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} <b>{name}</b></div>", unsafe_allow_html=True)
+                highlight = user_id == highlight_user_id
+                label = f"<b style='color:#0077ff;'>{name}</b>" if highlight else f"<b>{name}</b>"
+                streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} {label}</div>", unsafe_allow_html=True)
                 streamlit_module.markdown(f"<div style='text-align:center;'>{value} {metric}</div>", unsafe_allow_html=True)
-                streamlit_module.markdown("<div style='text-align:center; background-color:#D3D3D3; height: 10px;'></div>", unsafe_allow_html=True)
+                streamlit_module.markdown(
+                    "<div style='text-align:center; background-color:#D3D3D3; height: 10px;'></div>", unsafe_allow_html=True
+                )
 
         if remaining:
             streamlit_module.markdown("---")
-            for i, (name, value, _) in enumerate(remaining):
-                streamlit_module.write(f"**{i + 4}. {name}:** {value} {metric}")
+            streamlit_module.subheader("Top Performers (4th & 5th)")
+            for i, (name, value, user_id) in enumerate(remaining):
+                prefix = "🎯 " if user_id == highlight_user_id else ""
+                streamlit_module.write(f"**{i + 4}. {prefix}{name}:** {value} {metric}")
 
         streamlit_module.markdown("---")
-        streamlit_module.subheader("Top 10 Overall")
-        for name, value, _ in leaderboard_data[:10]:
-            streamlit_module.write(f"**{name}:** {value} {metric}")
+        streamlit_module.subheader("All Participants (Top 10)")
+        for name, value, user_id in leaderboard_data[:10]:
+            prefix = "⭐ " if user_id == highlight_user_id else ""
+            label = f"<b style='color:#0077ff;'>{prefix}{name}</b>" if user_id == highlight_user_id else f"{name}"
+            streamlit_module.markdown(f"**{label}:** {value} {metric}", unsafe_allow_html=True)
     else:
         streamlit_module.info(f"No {metric} data available to display the leaderboard.")
 
 
+
 def display_friends_leaderboard(
     user_id,
+    metric="calories",
     streamlit_module=sl,
     get_friends_funcs={
         "calories": get_friends_calories_list,
@@ -462,31 +477,12 @@ def display_friends_leaderboard(
         "steps": get_friends_steps_list
     }
 ):
-    """
-    Displays the leaderboard of the user and their friends based on a selected metric
-    (calories, distance, or steps), with a top 3 podium and top 10 ranking.
-
-    Args:
-        user_id: The ID of the current user.
-        streamlit_module: The Streamlit module to use for display.
-        get_friends_funcs: Dict of metric → fetch function.
-    """
-
-    # 🧭 Let the user choose which stat to rank
-    metric = streamlit_module.radio(
-        "🏆 Choose category:",
-        ["calories", "distance", "steps"],
-        horizontal=True,
-        key="friend_leaderboard_metric"
-    )
-
     metric_title = {
         "calories": "🔥 Calories Burned",
         "distance": "↔️ Distance Covered (mi)",
         "steps": "🚶 Steps Taken"
     }
 
-    # 🔍 Fetch leaderboard data
     leaderboard_data = get_friends_funcs[metric](user_id)
 
     if leaderboard_data:
@@ -495,28 +491,31 @@ def display_friends_leaderboard(
         top_3 = leaderboard_data[:3]
         remaining = leaderboard_data[3:5]
         cols = streamlit_module.columns(3)
-        pedestal_color = "#ADD8E6"
 
         for i, (name, value, friend_user_id) in enumerate(top_3):
             with cols[i]:
                 rank_emoji = ["🥇", "🥈", "🥉"][i]
-                streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} <b>{name}</b></div>", unsafe_allow_html=True)
+                is_user = friend_user_id == user_id
+                label = f"<b style='color:#0077ff;'>{name}</b>" if is_user else f"<b>{name}</b>"
+                streamlit_module.markdown(f"<div style='text-align:center;'>{rank_emoji} {label}</div>", unsafe_allow_html=True)
                 streamlit_module.markdown(f"<div style='text-align:center;'>{value} {metric}</div>", unsafe_allow_html=True)
                 streamlit_module.markdown(
-                    f"<div style='text-align:center; background-color:{pedestal_color}; padding: 5px; border-radius: 5px; height: 10px;'></div>",
-                    unsafe_allow_html=True,
+                    "<div style='text-align:center; background-color:#ADD8E6; height: 10px;'></div>", unsafe_allow_html=True
                 )
 
         if remaining:
             streamlit_module.markdown("---")
             streamlit_module.subheader("Top Friends (4th & 5th)")
-            for i, (name, value, _) in enumerate(remaining):
-                streamlit_module.write(f"**{i + 4}. {name}:** {value} {metric}")
+            for i, (name, value, friend_user_id) in enumerate(remaining):
+                prefix = "🎯 " if friend_user_id == user_id else ""
+                streamlit_module.write(f"**{i + 4}. {prefix}{name}:** {value} {metric}")
 
         streamlit_module.markdown("---")
         streamlit_module.subheader("Friends' Performance (Top 10)")
-        for name, value, _ in leaderboard_data[:10]:
-            streamlit_module.write(f"**{name}:** {value} {metric}")
+        for name, value, friend_user_id in leaderboard_data[:10]:
+            prefix = "⭐ " if friend_user_id == user_id else ""
+            label = f"<b style='color:#0077ff;'>{prefix}{name}</b>" if friend_user_id == user_id else f"{name}"
+            streamlit_module.markdown(f"**{label}:** {value} {metric}", unsafe_allow_html=True)
     else:
         streamlit_module.info(f"No {metric} data available to display the leaderboard.")
 
