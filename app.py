@@ -54,7 +54,8 @@ def display_app_page():
         # Profile Card
         col1, col2 = sl.columns([1, 3])
         with col1:
-            sl.image(user_profile['profile_image'], width=150)
+            if user_profile['profile_image']:
+                sl.image(user_profile['profile_image'], width=150)
         with col2:
             sl.markdown(f"**Username:** {user_profile['username']}")
             sl.markdown(f"**Date of Birth:** {user_profile['date_of_birth']}")
